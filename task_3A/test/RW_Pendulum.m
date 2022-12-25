@@ -238,7 +238,8 @@ function RW_pendulum_main()
   #m1 = 8;     # Mass of Pendulum Bar
   #m1 = 2;
   #m1 = 13;
-  m1=15.9245;
+  #m1=15.9245;
+  m1=14.5085
   #m2= 0.08;   # Mass of Reaction Wheel 
   m2 = 4.952;
   #l1= 3;      # Length of Pendulum Bar
