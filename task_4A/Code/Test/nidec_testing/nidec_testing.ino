@@ -18,9 +18,9 @@ void loop() {
   //Serial.println("Hello World");
   int a = digitalRead(ENCA);
   int b = digitalRead(ENCB);
-  digitalWrite(cw, HIGH);
+  //digitalWrite(cw, HIGH);
   digitalWrite(brake,LOW);
-  analogWrite(pwm, 10);
+  //analogWrite(pwm, 250);
   Serial.print(a);
   Serial.print(b);
   Serial.println();
