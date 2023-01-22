@@ -8,6 +8,8 @@
 7 - 4b
 8 - 4c
 9 - 2b
+10 - 2A
+11 - 1A
 */
 
 void setup() {
@@ -22,6 +24,8 @@ void setup() {
   pinMode(7, OUTPUT);
   pinMode(8, OUTPUT);
   pinMode(9, OUTPUT);
+  pinMode(10, OUTPUT);
+  pinMode(11, OUTPUT);
 }
 
 void loop() {
@@ -52,5 +56,11 @@ void loop() {
   }
   else if (digitalRead(9) == HIGH){
     Serial.println("Nine");
+  }
+  else if (digitalRead(10) == HIGH){
+    Serial.println("Ten");
+  }
+  else if (digitalRead(11) == HIGH){
+    Serial.println("Eleven");
   }
 }
