@@ -2,7 +2,7 @@
 #define ENCA 19 //21-PD0 //19-RX1
 #define ENCB 18 //20-PD1 //18-TX1
 
-int pos=0;
+float pos=0.0;
 
 
 void setup() {
@@ -18,7 +18,8 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly
-  Serial.println(pos);
+  //Serial.println(pos);
+  Serial.println((pos*360)/100);
 }
 
 void readEncoder(){
