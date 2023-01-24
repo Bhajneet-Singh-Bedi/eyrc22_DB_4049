@@ -9,7 +9,7 @@ MPU6050 mpu(Wire);
 float x=0.0;
 
 //Declare NIDEC Motor pins
-#define brake         8  //brake=0, go=1
+#define brake         49  //brake=0, go=1
 #define cw            4  //cw=1, ccw=0
 #define rpm           9  //PWM=255=stop, PWM=0=max_speed  
 
