@@ -5,8 +5,9 @@ MPU6050 mpu(Wire);
 
 #define ENCA 19 //21-PD0 //19-RX1
 #define ENCB 18 //20-PD1 //18-TX1
-
-#define MPU_INT 2
+#define brake 48 //PL1
+#define cw 11 // 1A
+#define pwm 9 // 2B
 float pos=0.0,alpha=0.0, theta=0.0;
 
 
@@ -17,7 +18,12 @@ void setup() {
   mpu.begin();
   pinMode(ENCA, INPUT);
   pinMode(ENCB, INPUT);
-  pinMode(MPU_INT, INPUT);
+  pinMode(brake, OUTPUT);
+  pinMode(cw, OUTPUT);
+  pinMode(pwm, OUTPUT);
+  digitalWrite(brake, LOW);
+  digitalWrite(cw, HIGH);
+  analogWrite(pwm, 10);
   //pinMode(brake, OUTPUT);
   //digitalWrite(brake, LOW);
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
