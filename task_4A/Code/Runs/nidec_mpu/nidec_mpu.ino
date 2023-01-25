@@ -12,7 +12,7 @@ float alpha=0.0, theta=0.0, rpm=0.0;
 volatile long pos=0.0;
 double prevMillis=0, currentMillis=0, oldPos=0, newPos=0;
 double M=0.0,rads=0,prevRads=0.0, angAcc=0.0, trq=0.0;
-double dt, ticks_1, ticks_60;
+double dt=0, ticks_1=0, ticks_60=0, del_pos=0, dt1=0, dt60s=0;
 
 void readEncoder(){
   //Serial.print("read encoder");
@@ -64,18 +64,30 @@ void loop() {
 //  0.5dt=10 ticks;
 //  1dt=10/0.5 ticks;
 //  60dt=10*60/0.5;
-  
-  newPos=pos;
-  currentMillis=millis();
-  if (newPos-oldPos >= 20){
-    dt=currentMillis-prevMillis;
-    ticks_1=20/dt;
-    ticks_60=(20*60)/dt;
 
-    rpm=ticks_60/100;
+  currentMillis=millis();
+  newPos=pos;
+  if (currentMillis-prevMillis>=10){
+    dt=currentMillis-prevMillis;
+    del_pos=newPos-oldPos;
+    dt1=del_pos/dt;
+    dt60s=(dt1*1000*60)/dt;
     oldPos=newPos;
     prevMillis=currentMillis;
   }
+
+  
+//  newPos=pos;
+//  currentMillis=millis();
+//  if (newPos-oldPos >= 20){
+//    dt=currentMillis-prevMillis;
+//    ticks_1=20/dt;
+//    ticks_60=(20*60)/dt;
+//
+//    rpm=ticks_60/100;
+//    oldPos=newPos;
+//    prevMillis=currentMillis;
+//  }
   Serial.print("New Pos: ");
   Serial.print(newPos);
   Serial.print("Old Pos: ");
@@ -86,12 +98,12 @@ void loop() {
   Serial.print(currentMillis);
   Serial.print("dt: ");
   Serial.print(dt);
-  Serial.print("ticks_1: ");
-  Serial.print(ticks_1);
-  Serial.print("ticks_60: ");
-  Serial.print(ticks_60);
+  Serial.print("del_pos: ");
+  Serial.print(del_pos);
+  Serial.print("dt1: ");
+  Serial.print(dt1);
   Serial.print("RPM: ");
-  Serial.println(rpm);
+  Serial.println(dt60s);
   
 /*
   currentMillis=millis();
