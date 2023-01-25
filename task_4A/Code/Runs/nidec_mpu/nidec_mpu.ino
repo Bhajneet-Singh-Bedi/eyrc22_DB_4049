@@ -1,5 +1,5 @@
 // These two has to be interrupt pins.
-//#include<MPU6050_light.h>
+#include<MPU6050_light.h>
 
 #define ENCA 19 //21-PD0 //19-RX1
 #define ENCB 18 //20-PD1 //18-TX1
@@ -7,12 +7,13 @@
 #define cw 11 // 1A
 #define pwm 9 // 2B
 
-//MPU6050 mpu(Wire);
+MPU6050 mpu(Wire);
 float alpha=0.0, theta=0.0, rpm=0.0;
 volatile long pos=0.0;
 double prevMillis=0, currentMillis=0, oldPos=0, newPos=0,mil_now=0, mil_then=0;
 double M=0.0,rads=0,prevRads=0.0, angAcc=0.0, trq=0.0;
-double dt=0, ticks_1=0, ticks_60=0, del_pos=0, dt1=0, dt60s=0, tor=0;
+double dt=0, ticks_1=0, ticks_60=0, del_pos=0, dt1=0, dt60s=0, tor=0,dtt=0,dta=0,theta_then, alpha_then;
+double theta_dot, alpha_dot, mil_now_5, mil_then_5;
 int temp=0;
 void readEncoder(){
   //Serial.print("read encoder");
@@ -25,14 +26,14 @@ void readEncoder(){
   }
 }
 
-void lqr_controller(y, y_setpoint){
-  K = [-311.4268,-85.9813,-1.0000,-1.7637];
-  int mul=0
-  for (int i=0; i<length(K); i++){
-    mul=mul-(K[i]*(y[i]-y_setpoint[i]))
-  }
-  return mul
-}
+//void lqr_controller( y, int y_setpoint){
+//  K = [-311.4268,-85.9813,-1.0000,-1.7637];
+//  int mul=0
+//  for (int i=0; i<length(K); i++){
+//    mul=mul-(K[i]*(y[i]-y_setpoint[i]))
+//  }
+//  return mul
+//}
 
 
 void setup() {
@@ -51,14 +52,31 @@ void setup() {
   digitalWrite(cw, HIGH);
   analogWrite(pwm, 255);
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
-  
+//  lqr_controller();
 }
 
 void loop() {
   // put your main code here, to run repeatedly
   //Serial.println(pos);
-  M=(100*0.0975*0.0975)/2;
-  theta=(pos*360)/100;
+  //M=(100*0.0975*0.0975)/2;
+  // Alpha angle
+  alpha=(pos*360)/100;
+  
+  // Alpha_dot
+  mil_now=millis();
+  dtt=mil_now-mil_then;
+  if (dtt>0){
+    alpha_dot=(alpha-alpha_then)/dtt;
+  }
+
+  // Theta
+  mpu.update();
+  theta=mpu.getAngleX();
+
+  // Theta_Dot
+  if (dtt>0){
+    theta_dot=(theta-theta_then)/dtt;
+  }
 //  Serial.print("Theta: ");
 //  Serial.print(theta);
 //  mpu.update();
@@ -76,14 +94,13 @@ void loop() {
 //  0.5dt=10 ticks;
 //  1dt=10/0.5 ticks;
 //  60dt=10*60/0.5;
-  mil_now=millis();
   currentMillis=millis();
-  newPos=pos;
+  new_alpha=(pos*360)/100;
   if (currentMillis-prevMillis>=10){
     dt=currentMillis-prevMillis;
     del_pos=newPos-oldPos;
     dt1=del_pos/dt;
-    dt60s=(dt1*100*60)/dt;
+    dt60s=(dt1*1000*60)/dt;
     oldPos=newPos;
     prevMillis=currentMillis;
   }
@@ -97,11 +114,11 @@ void loop() {
 
 
 
-//  if (mil_now-mil_then>=5000){
-//    analogWrite(pwm, 255-temp);
-//    temp+=10;
-//    mil_then=mil_now;
-//  }
+  if (mil_now_5-mil_then_5>=5000){
+    analogWrite(pwm, 255-temp);
+    temp+=10;
+    mil_then_5=mil_now_5;
+  }
 //  Serial.print("TEMP: ");
 //  Serial.print(temp);
   
@@ -130,8 +147,8 @@ void loop() {
 //  Serial.print(del_pos);
 //  Serial.print("dt1: ");
 //  Serial.print(dt1);
-  Serial.print("\tRPM: ");
-  Serial.println(dt60s);
+//  Serial.print("\tRPM: ");
+//  Serial.println(dt60s);
   
 /*
   currentMillis=millis();
@@ -155,8 +172,19 @@ void loop() {
   trq=M*angAcc;
   Serial.print("\tTorque: ");
   Serial.println(trq);*/
-  y=[theta,theta_dot,alpha,alpha_dot];
-  y_setpoint=[0,0,0,0];
-  tor = lqr_controller(y, y_setpoint);
-  
+//  y=[theta,theta_dot,alpha,alpha_dot];
+//  y_setpoint=[0,0,0,0];
+//  tor = lqr_controller(y, y_setpoint);
+
+  Serial.print("Theta: ");
+  Serial.print(theta);
+  Serial.print("\tTheta_then: ");
+  Serial.println(theta_dot);
+//  Serial.print("\tAlpha: ");
+//  Serial.print(alpha);
+//  Serial.print("\tAlpha_dot: ");
+//  Serial.println(alpha_dot);
+  alpha_then=alpha; 
+  mil_then=mil_now;
+//  alpha_then=alpha;
 }
