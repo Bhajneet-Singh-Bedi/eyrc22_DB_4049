@@ -10,10 +10,10 @@
 //MPU6050 mpu(Wire);
 float alpha=0.0, theta=0.0, rpm=0.0;
 volatile long pos=0.0;
-double prevMillis=0, currentMillis=0, oldPos=0, newPos=0;
+double prevMillis=0, currentMillis=0, oldPos=0, newPos=0,mil_now=0, mil_then=0;
 double M=0.0,rads=0,prevRads=0.0, angAcc=0.0, trq=0.0;
-double dt=0, ticks_1=0, ticks_60=0, del_pos=0, dt1=0, dt60s=0;
-
+double dt=0, ticks_1=0, ticks_60=0, del_pos=0, dt1=0, dt60s=0, tor=0;
+int temp=0;
 void readEncoder(){
   //Serial.print("read encoder");
   int b=digitalRead(ENCB);
@@ -25,11 +25,23 @@ void readEncoder(){
   }
 }
 
+void lqr_controller(y, y_setpoint){
+  K = [-311.4268,-85.9813,-1.0000,-1.7637];
+  int mul=0
+  for (int i=0; i<length(K); i++){
+    mul=mul-(K[i]*(y[i]-y_setpoint[i]))
+  }
+  return mul
+}
+
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
 //  Wire.begin();
 //  mpu.begin();
+//  timer1_init();
+//  TCCR2B = TCCR2B & B11111000 | B00000001;  // for PWM frequency of 31372.55 Hz
   pinMode(ENCA, INPUT);
   pinMode(ENCB, INPUT);
   pinMode(brake, OUTPUT);
@@ -37,7 +49,7 @@ void setup() {
   pinMode(pwm, OUTPUT);
   digitalWrite(brake, LOW); // Low means braking.
   digitalWrite(cw, HIGH);
-  analogWrite(pwm, 10);
+  analogWrite(pwm, 255);
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
   
 }
@@ -64,18 +76,34 @@ void loop() {
 //  0.5dt=10 ticks;
 //  1dt=10/0.5 ticks;
 //  60dt=10*60/0.5;
-
+  mil_now=millis();
   currentMillis=millis();
   newPos=pos;
   if (currentMillis-prevMillis>=10){
     dt=currentMillis-prevMillis;
     del_pos=newPos-oldPos;
     dt1=del_pos/dt;
-    dt60s=(dt1*1000*60)/dt;
+    dt60s=(dt1*100*60)/dt;
     oldPos=newPos;
     prevMillis=currentMillis;
   }
+  
+  // Angular Acceleration finding: 
+  // acc is del v .
+  // convert rpm to velocity.
+//  rads=0.10471975512*dt60s;
 
+
+
+
+
+//  if (mil_now-mil_then>=5000){
+//    analogWrite(pwm, 255-temp);
+//    temp+=10;
+//    mil_then=mil_now;
+//  }
+//  Serial.print("TEMP: ");
+//  Serial.print(temp);
   
 //  newPos=pos;
 //  currentMillis=millis();
@@ -88,21 +116,21 @@ void loop() {
 //    oldPos=newPos;
 //    prevMillis=currentMillis;
 //  }
-  Serial.print("New Pos: ");
-  Serial.print(newPos);
-  Serial.print("Old Pos: ");
-  Serial.print(oldPos);
-  Serial.print("PrevM: ");
-  Serial.print(prevMillis);
-  Serial.print("Curr: ");
-  Serial.print(currentMillis);
-  Serial.print("dt: ");
-  Serial.print(dt);
-  Serial.print("del_pos: ");
-  Serial.print(del_pos);
-  Serial.print("dt1: ");
-  Serial.print(dt1);
-  Serial.print("RPM: ");
+//  Serial.print("New Pos: ");
+//  Serial.print(newPos);
+//  Serial.print("Old Pos: ");
+//  Serial.print(oldPos);
+//  Serial.print("PrevM: ");
+//  Serial.print(prevMillis);
+//  Serial.print("Curr: ");
+//  Serial.print(currentMillis);
+//  Serial.print("dt: ");
+//  Serial.print(dt);
+//  Serial.print("del_pos: ");
+//  Serial.print(del_pos);
+//  Serial.print("dt1: ");
+//  Serial.print(dt1);
+  Serial.print("\tRPM: ");
   Serial.println(dt60s);
   
 /*
@@ -127,6 +155,8 @@ void loop() {
   trq=M*angAcc;
   Serial.print("\tTorque: ");
   Serial.println(trq);*/
+  y=[theta,theta_dot,alpha,alpha_dot];
+  y_setpoint=[0,0,0,0];
+  tor = lqr_controller(y, y_setpoint);
   
-
 }
