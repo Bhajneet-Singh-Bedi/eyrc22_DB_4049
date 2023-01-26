@@ -6,14 +6,15 @@
 #define brake 48 //PL1
 #define cw 11 // 1A
 #define pwm 9 // 2B
+#define pi = 3.141;
 
 //MPU6050 mpu(Wire);
 float alpha=0.0, theta=0.0;
 volatile long pos=0.0;
 double prevMillis=0, currentMillis=0, mil_now=0, mil_then=0;
-double M=0.0, angAcc=0.0, trq=0.0;
-double dt=0, tor=0,dtt=0,theta_then, alpha_then;
-double theta_dot, alpha_dot, mil_now_5=0, mil_then_5=0, rpm=0, new_alpha=0,del_alpha=0, old_alpha=0;
+double M=0.0, angAcc=0.0, trq=0.0, y[4], y_setpoint[4], K[4], prev_trq=0, rpms_then=0;
+double dt=0, tor=0,dtt=0,theta_then, alpha_then, vel_Now, prev_rpm=0, max_rpm=0;
+double theta_dot, alpha_dot, mil_now_5=0, mil_then_5=0, rpm=0, new_alpha=0,del_alpha=0, old_alpha=0, rpms=0;
 int temp=0;
 void readEncoder(){
   //Serial.print("read encoder");
@@ -29,25 +30,34 @@ void readEncoder(){
 int rounds(){
   currentMillis=millis();
   new_alpha=(pos*360*0.0174533)/100;
-  if (currentMillis-prevMillis>=50){
+  if (currentMillis-prevMillis>=10){
     dt=currentMillis-prevMillis;
     del_alpha=new_alpha-old_alpha;
     rpm=del_alpha*1000*60/(dt*6.28319);
     old_alpha=new_alpha;
     prevMillis=currentMillis;
+    max_rpm=max(rpm, prev_rpm);
+    Serial.print("Max RPM: ");
+    Serial.print(max_rpm);
   }
   return rpm;
 }
 
-//int lqr_controller( y, int y_setpoint){
+//int lqr_controller( int y,  int y_setpoint){
 //  K = [-311.4268,-85.9813,-1.0000,-1.7637];
-//  int mul=0
+//  int mul=0;
 //  for (int i=0; i<length(K); i++){
 //    mul=mul-(K[i]*(y[i]-y_setpoint[i]))
 //  }
 //  return mul
 //}
 
+
+
+//int set_torque(int trq){
+//  vel_Now=(angAcc*dtt)+vel_Then;
+//  rpms=(vel_Now*60)/(2*pi);
+//}
 
 void setup() {
   // put your setup code here, to run once:
@@ -64,7 +74,7 @@ void setup() {
   digitalWrite(brake, LOW); // Low means braking.
   digitalWrite(cw, HIGH);
   analogWrite(pwm, 255);
-  M = 0.036*0.097*0.097/2
+  M = 0.036*0.097*0.097/2;
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 //  lqr_controller();
 }
@@ -92,22 +102,29 @@ void loop() {
 //    theta_dot=(theta-theta_then)/dtt;
 //  }
 
-  rounds();
-  currentMillis=millis();
-  new_alpha=(pos*360*0.0174533)/100;
-  if (currentMillis-prevMillis>=50){
-    dt=currentMillis-prevMillis;
-    del_alpha=new_alpha-old_alpha;
-    rpm=del_alpha*1000*60/(dt*6.28319);
-    old_alpha=new_alpha;
-    prevMillis=currentMillis;
+  rpms=rounds();
+  Serial.print("\tRPMS: ");
+  Serial.print(rpms);
+
+  angAcc=rpms-rpms_then/dtt;
+
+  tor=M*angAcc;
+  Serial.print("\tTorque: ");
+  Serial.print(tor);
+  
+  mil_now_5=millis();
+  if (mil_now_5-mil_then_5>=5000){
+    analogWrite(pwm, 255-temp);
+    temp+=5;
+    mil_then_5=mil_now_5;
   }
-
-
+  Serial.print("\tTemp: ");
+  Serial.println(temp);
   // Angular Acceleration finding: 
   // acc is del v .
   // convert rpm to velocity.
-//  rads=0.10471975512*dt60s;
+//  vel_Now=rpms*2
+//  angAcc=
 
 
 
@@ -127,5 +144,7 @@ void loop() {
   alpha_then=alpha; 
   theta_then=theta;
   mil_then=mil_now;
+//  mil_then_5=mil_now_5;
+  rpms_then=rpms;
 //  alpha_then=alpha;
 }
