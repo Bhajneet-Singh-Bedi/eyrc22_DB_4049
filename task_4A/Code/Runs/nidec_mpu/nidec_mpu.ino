@@ -1,5 +1,5 @@
 // These two has to be interrupt pins.
-#include<MPU6050_light.h>
+//#include<MPU6050_light.h>
 
 #define ENCA 19 //21-PD0 //19-RX1
 #define ENCB 18 //20-PD1 //18-TX1
@@ -7,7 +7,7 @@
 #define cw 11 // 1A
 #define pwm 9 // 2B
 
-MPU6050 mpu(Wire);
+//MPU6050 mpu(Wire);
 float alpha=0.0, theta=0.0, rpm=0.0;
 volatile long pos=0.0;
 double prevMillis=0, currentMillis=0, oldPos=0, newPos=0,mil_now=0, mil_then=0;
@@ -94,11 +94,12 @@ void loop() {
 //  0.5dt=10 ticks;
 //  1dt=10/0.5 ticks;
 //  60dt=10*60/0.5;
+//  1 deg/sec=0.017453 rad/sec.
   currentMillis=millis();
-  new_alpha=(pos*360)/100;
+  new_alpha=(pos*360*0.017453)/100;
   if (currentMillis-prevMillis>=10){
     dt=currentMillis-prevMillis;
-    del_pos=newPos-oldPos;
+    del_alpha=new_alpha-old_alpha;
     dt1=del_pos/dt;
     dt60s=(dt1*1000*60)/dt;
     oldPos=newPos;
