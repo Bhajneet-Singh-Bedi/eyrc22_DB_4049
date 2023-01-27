@@ -241,7 +241,8 @@ function RW_pendulum_main()
   #m1 = 2;
   #m1 = 13;
   #m1 = 14.18;
-  m1 = 0.036;
+  # 96+32
+  m1 = 0.134;
   m2 = 0.148;
   #m2= 0.08;   # Mass of Reaction Wheel 
   #m2 = 4.952;

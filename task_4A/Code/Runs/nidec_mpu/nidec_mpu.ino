@@ -1,5 +1,5 @@
 // These two has to be interrupt pins.
-//#include<MPU6050_light.h>
+#include<MPU6050_light.h>
 
 #define ENCA 19 //21-PD0 //19-RX1
 #define ENCB 18 //20-PD1 //18-TX1
@@ -8,7 +8,7 @@
 #define pwm 9 // 2B
 #define pi = 3.141;
 
-//MPU6050 mpu(Wire);
+MPU6050 mpu(Wire);
 float alpha=0.0, theta=0.0;
 volatile long pos=0.0;
 const int siz=4;
@@ -47,6 +47,10 @@ int rounds(){
 
 int lqr_controller( int y[],  int y_setpoint[]){
 //  K = [-311.4268,-85.9813,-1.0000,-1.7637];
+//  K[0]=-41.4663;K[1]=-6.4185;K[2]=-1.0000;K[3]=-1.3120;
+//  K[0]=-49.32124;K[1]=-7.25900;K[2]=-1.00000;K[3]=-1.29629;
+  K[0]=-49.91982;K[1]=-7.31929;K[2]=-1.00000;K[3]=-1.29515;
+
 //  K = {-41.4663,-6.4185,-1.0000,-1.3120};
   int mul=0;
   for (int i=0; i<siz; i++){
@@ -58,40 +62,49 @@ int lqr_controller( int y[],  int y_setpoint[]){
 
 
 
-int set_torque(int trq, int rpms, int rpms_then, int dtt){
-  int angAcc = trq/M;
-  rpms=(angAcc*dtt)/rpms_then;
-//  int remp_rpms=rpms;
-  pwmVal=map(fabs(rpms), 0, 2828, 0, 255);
+int set_torque(double tr, double rp, double rp_then, double dtt_1){
+  int angAccc = tr/M;
+  rp=(angAccc*dtt_1)+rp_then;
+  // Changing the value of mxx
+  int rpm_abs = fabs(rpm);
+  double mxx;
+  if (rpm_abs>2727.28){
+    mxx=rpm;
+  }
+  pwmVal=map(fabs(rpms), 0, mxx, 0, 255);
+//  pwmVal=(fabs(rpms)*255)/2828;
 
   if (trq>0){
-    if (prev_rpms<0){
-      analogWrite(brake, LOW);
+    if (rp_then<0){
+      digitalWrite(brake, LOW);
+      delay(50);
     }
-    analogWrite(cw, HIGH);
-    analogWrite(brake, HIGH);
+    digitalWrite(cw, LOW);
+    digitalWrite(brake, HIGH);
   }
   else{
-    if (prev_rpms>0){
-      analogWrite(brake, HIGH);
+    if (rp_then>0){
+      digitalWrite(brake, LOW);
+      delay(50);
     }
-    analogWrite(cw, LOW);
+    digitalWrite(cw, HIGH);
+    digitalWrite(brake, HIGH);
   }
-  analogWrite(brake, HIGH);
+  
   prev_rpms=rpms;
   
-//  analogWrite(pwm, 255-pwmVal);
-//  Serial.print("CW: ");
-//  Serial.print(cw);
-//  Serial.print("PwmVal: ");
-//  Serial.println(pwmVal);
+  analogWrite(pwm, 255-pwmVal);
+  Serial.print("CW: ");
+  Serial.print(cw);
+  Serial.print("PwmVal: ");
+  Serial.println(255-pwmVal);
 }
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-//  Wire.begin();
-//  mpu.begin();
+  Wire.begin();
+  mpu.begin();
 //  timer1_init();
 //  TCCR2B = TCCR2B & B11111000 | B00000001;  // for PWM frequency of 31372.55 Hz
   pinMode(ENCA, INPUT);
@@ -102,7 +115,7 @@ void setup() {
   digitalWrite(brake, HIGH); // Low means braking.
   digitalWrite(cw, HIGH); // gives positive value // Low will give negative
   analogWrite(pwm, 255);
-  M = 0.036*0.097*0.097/2;
+  M = 0.134*0.097*0.097/2;
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 //  lqr_controller();
 }
@@ -112,16 +125,16 @@ void loop() {
   //M=(100*0.0975*0.0975)/2;
   // Alpha angle
   // 0.0174533
-  alpha=(pos*360)/100;
+  alpha=(pos*360*0.0174533)/100;
 //  rpm_right = (float)(right_wheel_pulse_count * 60 / ENC_COUNT_REV);
 
-  rpm=(pos*60)/100;
-  velc=rpm*0.10471975512;
+//  rpm=(pos*60)/100;
+//  velc=rpm*0.10471975512;
 
-  Serial.print("RPM: ");
-  Serial.print(rpm);
-  Serial.print("Velocity: ");
-  Serial.print(velc);
+//  Serial.print("RPM: ");
+//  Serial.print(rpm);
+//  Serial.print("Velocity: ");
+//  Serial.print(velc);
   // Alpha_dot
   mil_now=millis();
   dtt=mil_now-mil_then;
@@ -130,35 +143,35 @@ void loop() {
   }
 
   // Theta
-//  mpu.update();
-//  theta=mpu.getAngleX();
+  mpu.update();
+  theta=mpu.getAngleX();
 //
-//  Serial.print("Theta: ");
-//  Serial.print(theta);
+  Serial.print("Theta: ");
+  Serial.print(theta);
   // Theta_Dot
-//  if (dtt>0){
-//    theta_dot=(theta-theta_then)/dtt;
-//  }
+  if (dtt>0){
+    theta_dot=(theta-theta_then)/dtt;
+  }
 
-//  rpms=rounds();
-//  Serial.print("\tRPMS: ");
-//  Serial.print(rpms);
+  rpms=rounds();
+  Serial.print("\tRPMS: ");
+  Serial.print(rpms);
 
   // Max RPMS, 2828.0
 //  angAcc=rpms-rpms_then/dtt;
-
+//
 //  tor=M*angAcc;
 //  Serial.print("\tTorque: ");
 //  Serial.print(tor);
   
-  mil_now_5=millis();
-  if (mil_now_5-mil_then_5>=5000){
-    analogWrite(pwm, 255-temp);
-    temp+=5;
-    mil_then_5=mil_now_5;
-  }
-  Serial.print("\tTemp: ");
-  Serial.println(temp);
+//  mil_now_5=millis();
+//  if (mil_now_5-mil_then_5>=5000){
+//    analogWrite(pwm, 255-temp);
+//    temp+=5;
+//    mil_then_5=mil_now_5;
+//  }
+//  Serial.print("\tTemp: ");
+//  Serial.println(temp);
   // Angular Acceleration finding: 
   // acc is del v .
   // convert rpm to velocity.
