@@ -235,20 +235,27 @@ endfunction
 ##          respective functions and observing the behavior of the system. Constant
 ##          parameters like mass of Reaction Wheel, mass of pendulum bar etc are declared here.
 function RW_pendulum_main()
+  # 157, 28
+  # 36+6, 148
   #m1 = 8;     # Mass of Pendulum Bar
   #m1 = 2;
   #m1 = 13;
-  m1 = 14.18;
+  #m1 = 14.18;
+  m1 = 0.036;
+  m2 = 0.148;
   #m2= 0.08;   # Mass of Reaction Wheel 
-  m2 = 4.952;
+  #m2 = 4.952;
   #l1= 3;      # Length of Pendulum Bar
   #l1 = 0.8;
-  l1 = 0.6;
+  #l1 = 0.6;
+  l1 =  0.0856;  
+  # 76.9+8.70 
   g = 9.8;    # Centre of Gravity
   y0 = [0.9*pi; 0; 0; 0]; # Initial Conditions
   y_setpoint = [pi; 0; 2*pi; 0];  # Reference Point
   #wr=1; #wheel radius
-  wr = 0.3;
+  #wr = 0.3;
+  wr = 0.097;
 
 ## Function Calls for different control techniques for stabilizing RW Pendulum
   

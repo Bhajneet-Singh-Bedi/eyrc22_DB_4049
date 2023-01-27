@@ -24,9 +24,10 @@ ISR (TIMER1_OVF_vect)
     TCNT1L = 0x3F; //Counter lower 8 bit value
     mpu.update();
     cli();
-    Serial.println('X', mpu.getAngleX());
-    Serial.println('Y', mpu.getAngleY());
-    Serial.println('Z', mpu.getAngleZ());
+    Serial.print("X: ");
+    Serial.println(mpu.getAngleX());
+//    Serial.println('Y', mpu.getAngleY());
+//    Serial.println('Z', mpu.getAngleZ());
 }
 
 void setup() {
