@@ -25,9 +25,11 @@ ISR (TIMER1_OVF_vect)
     mpu.update();
     cli();
     Serial.print("X: ");
-    Serial.println(mpu.getAngleX());
-//    Serial.println('Y', mpu.getAngleY());
-//    Serial.println('Z', mpu.getAngleZ());
+    Serial.print(mpu.getAngleX());
+//    Serial.print("Y: ");
+//    Serial.print(mpu.getAngleY());
+//    Serial.print("Z: ");
+//    Serial.println(mpu.getAngleZ()),;
 }
 
 void setup() {

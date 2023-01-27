@@ -222,7 +222,7 @@ endfunction
 ##          calculated using LQR Controller.
 function [t,y] = lqr_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0)
   [A,B] = RW_pendulum_AB_matrix(m1 , m2, l1, wr, g);
-  Q = eye(4);
+  Q = [1000 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
   R = [1];
   K = lqr(A,B,Q,R)
   tspan = 0:0.1:10; # Time Array 
@@ -243,13 +243,15 @@ function RW_pendulum_main()
   #m1 = 14.18;
   # 96+32
   m1 = 0.134;
-  m2 = 0.148;
+  m2 = 0.406;
+  #m2 = 0.148;
   #m2= 0.08;   # Mass of Reaction Wheel 
   #m2 = 4.952;
   #l1= 3;      # Length of Pendulum Bar
   #l1 = 0.8;
   #l1 = 0.6;
-  l1 =  0.0856;  
+  #l1 =  0.0856;
+  l1 = 0.12;  
   # 76.9+8.70 
   g = 9.8;    # Centre of Gravity
   y0 = [0.9*pi; 0; 0; 0]; # Initial Conditions
