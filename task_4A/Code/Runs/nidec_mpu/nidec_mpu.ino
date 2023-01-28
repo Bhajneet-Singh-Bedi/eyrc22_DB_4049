@@ -11,7 +11,6 @@
 MPU6050 mpu(Wire);
 float alpha=0.0, theta=0.0;
 volatile long pos=0.0;
-int mul=0;
 const int siz=4;
 int y[siz], y_setpoint[siz];
 double prevMillis=0, currentMillis=0, mil_now=0, mil_then=0, prev_rpms=0, velc, cntr=1, vall;
@@ -55,10 +54,11 @@ int lqr_controller( int y[],  int y_setpoint[]){
 //  K[0]=-69.97770;K[1]=-10.38361;K[2]=-1.00000;K[3]=-1.30019;
 //  K[0]=-69.89653;K[1]=-10.38210;K[2]=-1.00000;K[3]=-1.2998;4
 //  K[0]=-77.60897;K[1]=-10.52474;K[2]=-1.00000;K[3]=-1.32904;
-  K[0] = -22.78308;K[1]=-3.37165;K[2]=-0.31623;K[3]=-0.41236;
+//  K[0] = -22.78308;K[1]=-3.37165;K[2]=-0.31623;K[3]=-0.41236;
+  K[0] = -49.71888;K[1]=-7.37913;K[2]=-0.70711;K[3]=-0.91972;
 
 //  K = {-41.4663,-6.4185,-1.0000,-1.3120};
-  
+  int mul;
   for (int i=0; i<siz; i++){
     mul = mul - (K[i]*(y[i]-y_setpoint[i]));
 //    Serial.print("HI");
@@ -71,43 +71,13 @@ int lqr_controller( int y[],  int y_setpoint[]){
 
 
 int set_torque(double tr, double rp, double rp_then, double dtt_1){
-  int angAccc = tr/M;
-  rp=(angAccc*dtt_1)+rp_then;
-  // Changing the value of mxx
-  int rpm_abs = fabs(rp);
-  double mxx;
-  if (rpm_abs>2727.28){
-    mxx=fabs(rp);
-  }
-//  Serial.print("RP: ");
-//  Serial.print(rp);
-  pwmVal=map(fabs(rp), 0, mxx, 0, 255);
-//  pwmVal=(fabs(rpms)*255)/2828;
-
-  if (trq>=0){
-    if (rp_then<0){
-      digitalWrite(brake, LOW);
-      delay(50);
-    }
-    digitalWrite(cw, HIGH);
-    digitalWrite(brake, HIGH);
-  }
-  else{
-    if (rp_then>0){
-      digitalWrite(brake, LOW);
-      delay(50);
-    }
-    digitalWrite(cw, LOW);
-    digitalWrite(brake, HIGH);
-  }
+  // What do I have to do?
+  // We need to set the motor to required torque.
+  // We will do this by first converting the torque value to rpms.
+  // Use T=MOI * angular acc.
+  // Ang acc = dv/dt.
+  // check that speed. If that speed value if greater than
   
-  prev_rpms=rp;
-  
-  analogWrite(pwm, 255-pwmVal);
-//  Serial.print("CW: ");
-//  Serial.print(cw);
-//  Serial.print("PwmVal: ");
-//  Serial.println(255-pwmVal);
 }
 
 void setup() {
