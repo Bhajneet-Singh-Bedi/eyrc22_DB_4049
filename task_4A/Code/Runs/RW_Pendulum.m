@@ -222,8 +222,9 @@ endfunction
 ##          calculated using LQR Controller.
 function [t,y] = lqr_RW_pendulum(m1, m2, l1, wr, g, y_setpoint, y0)
   [A,B] = RW_pendulum_AB_matrix(m1 , m2, l1, wr, g);
-  Q = [1000 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
-  R = [1];
+  #Q = [1000 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
+  Q = eye(4);
+  R = [10];
   K = lqr(A,B,Q,R)
   tspan = 0:0.1:10; # Time Array 
   [t,y] = ode45(@(t,y)RW_pendulum_dynamics(y, m1, m2, l1, wr, g, -K*(y-y_setpoint)),tspan,y0);  # ODE solver to solve differential equations

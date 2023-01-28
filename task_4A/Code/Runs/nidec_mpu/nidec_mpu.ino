@@ -11,6 +11,7 @@
 MPU6050 mpu(Wire);
 float alpha=0.0, theta=0.0;
 volatile long pos=0.0;
+int mul=0;
 const int siz=4;
 int y[siz], y_setpoint[siz];
 double prevMillis=0, currentMillis=0, mil_now=0, mil_then=0, prev_rpms=0, velc, cntr=1, vall;
@@ -53,14 +54,17 @@ int lqr_controller( int y[],  int y_setpoint[]){
 //  K[0]=-69.90391;K[1]=-10.38223;K[2]=-1.00000;K[3]=-1.29991;
 //  K[0]=-69.97770;K[1]=-10.38361;K[2]=-1.00000;K[3]=-1.30019;
 //  K[0]=-69.89653;K[1]=-10.38210;K[2]=-1.00000;K[3]=-1.2998;4
-  K[0]=-77.60897;K[1]=-10.52474;K[2]=-1.00000;K[3]=-1.32904;
+//  K[0]=-77.60897;K[1]=-10.52474;K[2]=-1.00000;K[3]=-1.32904;
+  K[0] = -22.78308;K[1]=-3.37165;K[2]=-0.31623;K[3]=-0.41236;
 
 //  K = {-41.4663,-6.4185,-1.0000,-1.3120};
-  int mul=0;
+  
   for (int i=0; i<siz; i++){
     mul = mul - (K[i]*(y[i]-y_setpoint[i]));
 //    Serial.print("HI");
   }
+  Serial.print("MUL: ");
+  Serial.println(mul);
   return mul;
 }
 
@@ -75,8 +79,8 @@ int set_torque(double tr, double rp, double rp_then, double dtt_1){
   if (rpm_abs>2727.28){
     mxx=fabs(rp);
   }
-  Serial.print("RP: ");
-  Serial.print(rp);
+//  Serial.print("RP: ");
+//  Serial.print(rp);
   pwmVal=map(fabs(rp), 0, mxx, 0, 255);
 //  pwmVal=(fabs(rpms)*255)/2828;
 
@@ -102,8 +106,8 @@ int set_torque(double tr, double rp, double rp_then, double dtt_1){
   analogWrite(pwm, 255-pwmVal);
 //  Serial.print("CW: ");
 //  Serial.print(cw);
-  Serial.print("PwmVal: ");
-  Serial.println(255-pwmVal);
+//  Serial.print("PwmVal: ");
+//  Serial.println(255-pwmVal);
 }
 
 void setup() {
@@ -111,8 +115,6 @@ void setup() {
   Serial.begin(9600);
   Wire.begin();
   mpu.begin();
-//  timer1_init();
-//  TCCR2B = TCCR2B & B11111000 | B00000001;  // for PWM frequency of 31372.55 Hz
   pinMode(ENCA, INPUT);
   pinMode(ENCB, INPUT);
   pinMode(brake, OUTPUT);
@@ -128,20 +130,10 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly
-  //M=(100*0.0975*0.0975)/2;
   // Alpha angle
   // 0.0174533
-  alpha=(pos*360*0.0174533)/100;
-//  rpm_right = (float)(right_wheel_pulse_count * 60 / ENC_COUNT_REV);
+  alpha=(pos*360*0.01745)/100;
 
-//  rpm=(pos*60)/100;
-//  velc=rpm*0.10471975512;
-
-//  Serial.print("RPM: ");
-//  Serial.print(rpm);
-//  Serial.print("Velocity: ");
-//  Serial.print(velc);
   // Alpha_dot
   mil_now=millis();
   dtt=mil_now-mil_then;
@@ -151,19 +143,15 @@ void loop() {
 
   // Theta
   mpu.update();
-  
-  theta=mpu.getAngleX();
-//
-//  Serial.print("Theta: ");
-//  Serial.print(theta);
+  theta=mpu.getAngleY();
+
   // Theta_Dot
   if (dtt>0){
     theta_dot=(theta-theta_then)/dtt;
   }
+//  theta_dot=mpu.getGyroX();
 
   rpms=rounds();
-//  Serial.print("\tRPMS: ");
-//  Serial.print(rpms);
 
   // Max RPMS, 2828.0
 //  angAcc=rpms-rpms_then/dtt;
@@ -194,9 +182,8 @@ void loop() {
     vall=theta;
     cntr+=1;
 
-    
   }
-  y_setpoint[0]=theta;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
+  y_setpoint[0]=vall;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
 //  y_setpoint=[0,0,0,0];
   trq = lqr_controller(y, y_setpoint);
 
@@ -214,6 +201,7 @@ void loop() {
   alpha_then=alpha; 
   theta_then=theta;
   mil_then=mil_now;
+  prev_rpm=rpm;
 //  mil_then_5=mil_now_5;
   rpms_then=rpms;
 //  alpha_then=alpha;
