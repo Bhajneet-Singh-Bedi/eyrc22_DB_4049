@@ -95,7 +95,7 @@ void loop() {
     alp_dot = (alp-prev_alp)/dtt; // radians
     // Finnding rpm of the motor.
     del_pos = pos-prev_pos; // In ppr
-    rp = (del_pos*60*0.10471975512)/(dtt*100); // This will probably give me rpms in degrees for coverting it to radians(angular velocity) mult it with 0.10471975512
+    rp = (del_pos*60*1000*0.10471975512)/(dtt*100); // This will probably give me rpms in degrees for coverting it to radians(angular velocity) mult it with 0.10471975512
     // And to degrees mult. with 57.29578
     vel_now = rp;
     prev_alp=alp;
