@@ -9,8 +9,8 @@
 
 MPU6050 mpu(Wire);
 
-float pos, thet, thet_dot, alp, alp_dot, prev_alp=0, currentTM, prevTM=0, dtt=0, rpm;
-float y[4]={}, y_setpoint[4]={} , cntr=1, vll, trq, sz=4, M, angAc;
+float pos, po, thet, thet_dot, alp, alp_dot, prev_alp=0, prev_pos, currentTM, prevTM=0, dtt=0, rp, prev_rp=0;
+float y[4]={}, y_setpoint[4]={} , cntr=1, vll, trq, sz=4, M, del_pos, angAc, prev_vel=0, vel_now, vel_give;
 int K[4]={};
 void readEncoder(){
   //Serial.print("read encoder");
@@ -25,7 +25,8 @@ void readEncoder(){
 
 int lqr_controller(float yy[], float yy_setpoint[]){
   float mul=0;
-  K[0] = -49.71888;K[1]=-7.37913;K[2]=-0.70711;K[3]=-0.91972;
+//  K[0] = -49.71888;K[1]=-7.37913;K[2]=-0.70711;K[3]=-0.91972;
+  K[0] = -22.78308;K[1]=-3.37165;K[2]=-0.31623;K[3]=-0.41236;
   for (int i=0; i<sz; i++){
     mul=mul-(K[i]*(yy[i]-yy_setpoint[i]));
   }
@@ -36,8 +37,21 @@ int lqr_controller(float yy[], float yy_setpoint[]){
 
 int st_trq(int tr){
   // Take the trq value convert it to ang acc.
+  // T = I(Moment of Inertial) * alpha(Angular Acceleration).
   angAc=tr/M;
-  
+  Serial.print("Ang acc: ");
+  Serial.print(angAc);
+  // angular acc is delv/delt.
+  // for converting rpms to angular velocity mult it by 0.10471975512.
+//  => prev_vel = rp*0.10471975512;
+//  vel-prev_vel/dtt = tr/M;
+//  => vel = tr*dtt/M*prev_vel;
+//  prev_val = vel
+  vel_give = ((tr*dtt)/M)+(prev_vel);
+  Serial.print("\tVEL_give: ");
+  Serial.println(vel_give);
+//  Serial.print("VEL: ");
+//  Serial.println(vel_give);
 }
 
 
@@ -56,33 +70,38 @@ void setup() {
 //  digitalWrite(cw, HIGH); // gives positive value // Low will give negative
   analogWrite(pwm, 255); // 255 means stop // 0 means go.
 //  mpu.calcOffsets(true, true); 
-  M = (0.134*0.097*0.097)/2;
+  M = 0.134*0.097*0.097/2;
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 }
 
 void loop() {
 
   
-  // This is alpha
+  // Theta.
+  mpu.update();
+  thet = mpu.getAngleY()*0.0174533; // radians
+  // Theta_dot.
+  thet_dot = mpu.getGyroY()*0.0174533; // radians
+
+    // This is alpha
   // 0.0174533
-  alp = (pos*360)/100;
+  alp = (pos*360*0.10471975512)/100; // radians
 //  Serial.print(alp);
   // alpha_dot, change in theta of the reaction wheel.
   currentTM = millis();
   dtt = currentTM-prevTM;
 
   if (dtt>10){
-    alp_dot = (alp-prev_alp)/dtt;
+    alp_dot = (alp-prev_alp)/dtt; // radians
+    // Finnding rpm of the motor.
+    del_pos = pos-prev_pos; // In ppr
+    rp = (del_pos*60*0.10471975512)/(dtt*100); // This will probably give me rpms in degrees for coverting it to radians(angular velocity) mult it with 0.10471975512
+    // And to degrees mult. with 57.29578
+    vel_now = rp;
     prev_alp=alp;
+    prev_pos=pos;
     prevTM=currentTM;
   }
-  
-  // Theta.
-  mpu.update();
-  thet = mpu.getAngleY();
-  // Theta_dot.
-  thet_dot = mpu.getGyroY();
-
   // Now we will get the value of torque required from the lqr controller.
   y[0]=thet; y[1]=thet_dot; y[2]=alp;  y[3]=alp_dot;
   y_setpoint[0]=0;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
@@ -90,10 +109,9 @@ void loop() {
 //  Serial.print("TRQ: ");
 //  Serial.println(trq);
 
-  // Finnding rpm of the motor.
-  rpm = (alp*60)/100;
-//  Serial.printoln(alp);
-  // Now use this trq val to provide torque to my motor.
-//  st_trq(trq);
+
+  // Now use this trq val to provide torque to the motor.
+  st_trq(trq);
+  prev_vel=vel_now;
   
 }
