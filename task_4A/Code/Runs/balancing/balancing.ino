@@ -1,7 +1,7 @@
 #include <MPU6050_light.h>
 
-#define ENCA 19 //21-PD0 //19-RX1
-#define ENCB 18 //20-PD1 //18-TX1
+#define ENCA 2 //21-PD0 //19-RX1  //17-RX2
+#define ENCB 3 //20-PD1 //18-TX1  //16-TX2
 #define brake 48 //PL1
 #define cw 11 // 1A
 #define pwm 9 // 2B
@@ -9,7 +9,7 @@
 
 MPU6050 mpu(Wire);
 
-float pos, alp, alp_dot, prev_alp=0, currentTM, prevTM=0, dtt=0;
+float pos, thet, thet_dot, alp, alp_dot, prev_alp=0, currentTM, prevTM=0, dtt=0, rpm;
 float y[4]={}, y_setpoint[4]={} , cntr=1, vll, trq, sz=4, M, angAc;
 int K[4]={};
 void readEncoder(){
@@ -27,18 +27,18 @@ int lqr_controller(float yy[], float yy_setpoint[]){
   float mul=0;
   K[0] = -49.71888;K[1]=-7.37913;K[2]=-0.70711;K[3]=-0.91972;
   for (int i=0; i<sz; i++){
-    mul=mul-K[i]*(yy[i]-yy_setpoint[i]);
+    mul=mul-(K[i]*(yy[i]-yy_setpoint[i]));
   }
   return mul;
 
 }
 
 
-//int st_trq(int tr){
-//  // Take the trq value convert it to ang acc.
-//  angAc=tr/M;
-//  
-//}
+int st_trq(int tr){
+  // Take the trq value convert it to ang acc.
+  angAc=tr/M;
+  
+}
 
 
 void setup() {
@@ -51,6 +51,7 @@ void setup() {
   pinMode(brake, OUTPUT);
   pinMode(cw, OUTPUT);
   pinMode(pwm, OUTPUT);
+//  digitalWrite(ENCA, HIGH);
   digitalWrite(brake, LOW); // Low means braking.
 //  digitalWrite(cw, HIGH); // gives positive value // Low will give negative
   analogWrite(pwm, 255); // 255 means stop // 0 means go.
@@ -60,46 +61,39 @@ void setup() {
 }
 
 void loop() {
-  // First we need to get the torque required from lqr.
-  mpu.update();
-//  Serial.print("Y: ");
-  // Gives me theta
-//  Serial.print(mpu.getAngleY());
-//  Serial.print("\tACC: ");
-  // Gives me theta_dot
-//  Serial.println(mpu.getGyroY());
 
-  // Now we need to get angular position and velocity.
+  
+  // This is alpha
   // 0.0174533
   alp = (pos*360)/100;
-  Serial.print("ALP: ");
-  Serial.print(alp);
-  
-  // alpha_dot, angular velocity.
-  currentTM = micros(); // 1 milli = 1000 micro.
+//  Serial.print(alp);
+  // alpha_dot, change in theta of the reaction wheel.
+  currentTM = millis();
   dtt = currentTM-prevTM;
-  delay(50);
-  if (dtt>50000){ // 50 milli seconds.
-    Serial.print("Hello");
+
+  if (dtt>10){
     alp_dot = (alp-prev_alp)/dtt;
+    prev_alp=alp;
     prevTM=currentTM;
   }
-  Serial.print("\tALP_dot: ");
-  Serial.print(alp_dot);
+  
+  // Theta.
+  mpu.update();
+  thet = mpu.getAngleY();
+  // Theta_dot.
+  thet_dot = mpu.getGyroY();
 
   // Now we will get the value of torque required from the lqr controller.
-  if (cntr==1){
-    vll=mpu.getAngleX();
-  }
-  y[0]=mpu.getAngleY(); y[1]=mpu.getGyroY(); y[2]=alp;  y[3]=alp_dot;
-  y_setpoint[0]=vll;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
+  y[0]=thet; y[1]=thet_dot; y[2]=alp;  y[3]=alp_dot;
+  y_setpoint[0]=0;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
   trq = lqr_controller(y, y_setpoint);
-  Serial.print("TRQ: ");
-  Serial.println(trq);
+//  Serial.print("TRQ: ");
+//  Serial.println(trq);
 
+  // Finnding rpm of the motor.
+  rpm = (alp*60)/100;
+//  Serial.printoln(alp);
   // Now use this trq val to provide torque to my motor.
 //  st_trq(trq);
   
-  prev_alp=alp;
-  prevTM=micros();
 }
