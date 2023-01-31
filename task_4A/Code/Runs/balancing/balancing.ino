@@ -10,7 +10,7 @@
 MPU6050 mpu(Wire);
 
 float pos, po, thet, thet_dot, alp, alp_dot, prev_alp=0, prev_pos, currentTM, prevTM=0, dtt=0, rp, prev_rp=0;
-float y[4]={}, y_setpoint[4]={} , cntr=1, vll, trq, sz=4, M, del_pos, angAc, prev_vel=0, vel_now, vel_give;
+float y[4]={}, y_setpoint[4]={} , cntr=1, vll, trq, sz=4, M, del_pos, angAc, prev_vel=0, vel_now, vel_give, target_pos, p_pos;
 int K[4]={};
 void readEncoder(){
   //Serial.print("read encoder");
@@ -39,19 +39,49 @@ int st_trq(int tr){
   // Take the trq value convert it to ang acc.
   // T = I(Moment of Inertial) * alpha(Angular Acceleration).
   angAc=tr/M;
-  Serial.print("Ang acc: ");
-  Serial.print(angAc);
+//  Serial.print("Ang acc: ");
+//  Serial.print(angAc);
   // angular acc is delv/delt.
   // for converting rpms to angular velocity mult it by 0.10471975512.
-//  => prev_vel = rp*0.10471975512;
-//  vel-prev_vel/dtt = tr/M;
-//  => vel = tr*dtt/M*prev_vel;
-//  prev_val = vel
   vel_give = ((tr*dtt)/M)+(prev_vel);
-  Serial.print("\tVEL_give: ");
-  Serial.println(vel_give);
-//  Serial.print("VEL: ");
+//  Serial.print("\tVEL_give: ");
 //  Serial.println(vel_give);
+  // Now we will change velocity_give to position of the motor.
+  target_pos = (vel_give*dtt)+p_pos;
+  set_pos();
+  Serial.print("TargetPos: ");
+  Serial.println(target_pos);
+}
+
+int set_pos(){
+  float kp=1;
+  float kd=0;
+  float ki = 0;
+
+  delaT = float(dtt)/1.0e6;
+
+  //error
+  int e = target_pos-pos;
+
+  // derivative
+  float dedt = (e-eprev)/(deltaT);
+
+  // Integral
+  eIntegral = eIntegral + e*deltaT;
+
+
+  // control signal
+  float u = kp*e + kd*dedt + ki*eintegral;
+
+  // Powering the motor.
+  float pwr = fabs(u);
+  if (pwr>255){
+    pwr = 255;
+  }
+  // Direction function.
+
+  // Signal motor function
+  
 }
 
 
@@ -99,6 +129,7 @@ void loop() {
     // And to degrees mult. with 57.29578
     vel_now = rp;
     prev_alp=alp;
+    p_pos = prev_pos; // to be used later.
     prev_pos=pos;
     prevTM=currentTM;
   }
@@ -113,5 +144,5 @@ void loop() {
   // Now use this trq val to provide torque to the motor.
   st_trq(trq);
   prev_vel=vel_now;
-  
+  p_pos = prev_pos;
 }
