@@ -13,7 +13,7 @@ float pos, po, thet, thet_dot, alp, alp_dot, prev_alp=0, prev_pos, currentTM, pr
 float y[4]={}, y_setpoint[4]={} , cntr=1, vll, trq, sz=4, M, del_pos, angAc, prev_vel=0, vel_now, vel_give, target_pos, p_pos;
 //int pos=0;
 long prevT=0;
-float eprev=0, eIntegral=0;
+float eprev=0, eIntegral=0, dts=0;
 int K[4]={};
 void readEncoder(){
   //Serial.print("read encoder");
@@ -28,8 +28,24 @@ void readEncoder(){
 
 int lqr_controller(float yy[], float yy_setpoint[]){
   float mul=0;
+  //  K = [-311.4268,-85.9813,-1.0000,-1.7637];
+//  K[0]=-41.4663;K[1]=-6.4185;K[2]=-1.0000;K[3]=-1.3120;
+//  K[0]=-49.32124;K[1]=-7.25900;K[2]=-1.00000;K[3]=-1.29629;
+//  K[0]=-49.91982;K[1]=-7.31929;K[2]=-1.00000;K[3]=-1.29515;
+//  K[0]=-69.90391;K[1]=-10.38223;K[2]=-1.00000;K[3]=-1.29991;
+//  K[0]=-69.97770;K[1]=-10.38361;K[2]=-1.00000;K[3]=-1.30019;
+//  K[0]=-69.89653;K[1]=-10.38210;K[2]=-1.00000;K[3]=-1.2998;4
+//  K[0]=-77.60897;K[1]=-10.52474;K[2]=-1.00000;K[3]=-1.32904;
+//  K[0] = -22.78308;K[1]=-3.37165;K[2]=-0.31623;K[3]=-0.41236;
 //  K[0] = -49.71888;K[1]=-7.37913;K[2]=-0.70711;K[3]=-0.91972;
-  K[0] = -22.78308;K[1]=-3.37165;K[2]=-0.31623;K[3]=-0.41236;
+//    K[0]=-69.90391;  K[1]=-10.38223;   K[2]=-1.00000;   K[3]=-1.29991;
+//    K[0]=-40.77681;   K[1]=-6.04874;   K[2]=-0.57735;   K[3]=-0.75130;
+//    K[0]=-193.01827;   K[1]=-25.14391;    K[2]=-1.00000;    K[3]=-1.26103;
+//    K[0]=-136.66472;   K[1]=-17.80188;    K[2]=-0.70711;    K[3]=-0.89180;
+//    K[0]=-281.02199;   K[1]=-35.01541;    K[2]=-0.70711;    K[3]=-0.88350;
+//    K[0]=-217.99154;   K[1]=-27.49369;    K[2]=-0.70711;    K[3]=-0.88573;
+//    K[0]=-147.40983;   K[1]=-18.80253;    K[2]=-0.57735;    K[3]=-0.72496;
+    K[0]=-147.40983;   K[1]=-18.80253;    K[2]=-0.70711;    K[3]=-0.72496;
   for (int i=0; i<sz; i++){
     mul=mul-(K[i]*(yy[i]-yy_setpoint[i]));
   }
@@ -38,7 +54,7 @@ int lqr_controller(float yy[], float yy_setpoint[]){
 }
 
 
-int st_trq(int tr){
+int st_trq(float tr){
   // Take the trq value convert it to ang acc.
   // T = I(Moment of Inertial) * alpha(Angular Acceleration).
   angAc=tr/M;
@@ -46,11 +62,11 @@ int st_trq(int tr){
 //  Serial.print(angAc);
   // angular acc is delv/delt.
   // for converting rpms to angular velocity mult it by 0.10471975512.
-  vel_give = ((tr*dtt)/M)+(prev_vel);
+  vel_give = ((tr*dts)/M)+(prev_vel);
 //  Serial.print("\tVEL_give: ");
 //  Serial.println(vel_give);
   // Now we will change velocity_give to position of the motor.
-  target_pos = (vel_give*dtt)+p_pos;
+  target_pos = (vel_give*dts)+p_pos;
 //  Serial.println(target_pos);
   // Using PID controller to set the pwm value for the motor to move the RW wheel to the required position.
   set_pos();
@@ -59,55 +75,51 @@ int st_trq(int tr){
 }
 
 int set_pos(){
-  float kp=1;
-  float kd=0;
-  float ki = 0;
 
-  deltaT = float(dtt)/1.0e6;
+  // PID constants
+  float kp=1, kd=0, ki=0;
 
-  //error
-  int e = target_pos-pos;
+  // error
+  int e = pos-target_pos;
 
   // derivative
-  float dedt = (e-eprev)/(deltaT);
+  float dedt = (e-eprev)/dts;
 
   // Integral
-  eIntegral = eIntegral + e*deltaT;
+  eIntegral = eIntegral + e*dts;
 
-
-  // control signal
+  // Control Signal
   float u = kp*e + kd*dedt + ki*eIntegral;
-//  Serial.println(u);
-  // Powering the motor.
+
+  // motor power
   float pwr = fabs(u);
   if (pwr>255){
     pwr = 255;
   }
-  // Direction function.
-  if (u>0){
-    // Setting up to some direction.
-    // The motor should rotate clockwise.
-    if (prev_u<0){
-      digitalWrite(brake, LOW);
-    }
-    digitalWrite(cw, HIGH);
-    digitalWrite(brake, HIGH);
-  }
-  else {
+
+  // Direction
+  if (u<0){
+    analogWrite(pwm, pwr);
     if (prev_u>0){
       digitalWrite(brake, LOW);
     }
-    digitalWrite(cw, LOW);
     digitalWrite(brake, HIGH);
+    delay(10);
+    digitalWrite(cw, LOW);
   }
-  prev_u = u;
-  // Signal motor function
-  eprev=e;
-  Serial.print("Target: ");
-  Serial.print(target_pos);
-  Serial.print("\tPos: ");
-  Serial.println(pos);
-  analogWrite(pwm, pwr);
+  else{
+    analogWrite(pwm, pwr);
+    if (prev_u<=0){
+      digitalWrite(brake, LOW);
+    }
+    digitalWrite(brake, HIGH);
+    delay(10);
+    digitalWrite(cw, HIGH);
+  }
+//  Serial.print(target_pos);
+//  Serial.print(" ");
+//  Serial.print(pos);
+//  Serial.println();
 }
 
 
@@ -125,8 +137,8 @@ void setup() {
   digitalWrite(brake, LOW); // Low means braking.
 //  digitalWrite(cw, HIGH); // gives positive value // Low will give negative
   analogWrite(pwm, 255); // 255 means stop // 0 means go.
-//  mpu.calcOffsets(true, true); 
-  M = 0.134*0.097*0.097/2; // Moment of Inertia.
+  mpu.calcOffsets(true, true); 
+  M = 0.060*0.097*0.097/2; // Moment of Inertia.
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 }
 
@@ -138,20 +150,21 @@ void loop() {
   thet = mpu.getAngleY()*0.0174533; // radians
   // Theta_dot.
   thet_dot = mpu.getGyroY()*0.0174533; // radians
-
+  Serial.println(thet);
     // This is alpha
   // 0.0174533
   alp = (pos*360*0.10471975512)/100; // radians
 //  Serial.print(alp);
   // alpha_dot, change in theta of the reaction wheel.
-  currentTM = millis();
+  currentTM = micros();
   dtt = currentTM-prevTM;
+  dts = dtt/1.0e6;
 
   if (dtt>10){
     alp_dot = (alp-prev_alp)/dtt; // radians
     // Finnding rpm of the motor.
     del_pos = pos-prev_pos; // In ppr
-    rp = (del_pos*60*1000*0.10471975512)/(dtt*100); // This will probably give me rpms in degrees for coverting it to radians(angular velocity) mult it with 0.10471975512
+    rp = (del_pos*0.10471975512)/(dts*100); // This will probably give me rpms in degrees for coverting it to radians(angular velocity) mult it with 0.10471975512
     // And to degrees mult. with 57.29578
     vel_now = rp;
     prev_alp=alp;
