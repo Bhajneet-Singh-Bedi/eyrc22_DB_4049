@@ -9,8 +9,11 @@
 
 MPU6050 mpu(Wire);
 
-float pos, po, thet, thet_dot, alp, alp_dot, prev_alp=0, prev_pos, currentTM, prevTM=0, dtt=0, rp, prev_rp=0;
+float pos, po, thet, thet_dot, alp, alp_dot, prev_alp=0, prev_pos, currentTM, prevTM=0, dtt=0, rp, prev_rp=0, deltaT=0, prev_u=0;
 float y[4]={}, y_setpoint[4]={} , cntr=1, vll, trq, sz=4, M, del_pos, angAc, prev_vel=0, vel_now, vel_give, target_pos, p_pos;
+//int pos=0;
+long prevT=0;
+float eprev=0, eIntegral=0;
 int K[4]={};
 void readEncoder(){
   //Serial.print("read encoder");
@@ -48,11 +51,11 @@ int st_trq(int tr){
 //  Serial.println(vel_give);
   // Now we will change velocity_give to position of the motor.
   target_pos = (vel_give*dtt)+p_pos;
-
+//  Serial.println(target_pos);
   // Using PID controller to set the pwm value for the motor to move the RW wheel to the required position.
   set_pos();
-  Serial.print("TargetPos: ");
-  Serial.println(target_pos);
+//  Serial.print("TargetPos: ");
+//  Serial.println(target_pos);
 }
 
 int set_pos(){
@@ -60,7 +63,7 @@ int set_pos(){
   float kd=0;
   float ki = 0;
 
-  delaT = float(dtt)/1.0e6;
+  deltaT = float(dtt)/1.0e6;
 
   //error
   int e = target_pos-pos;
@@ -73,17 +76,38 @@ int set_pos(){
 
 
   // control signal
-  float u = kp*e + kd*dedt + ki*eintegral;
-
+  float u = kp*e + kd*dedt + ki*eIntegral;
+//  Serial.println(u);
   // Powering the motor.
   float pwr = fabs(u);
   if (pwr>255){
     pwr = 255;
   }
   // Direction function.
-  
+  if (u>0){
+    // Setting up to some direction.
+    // The motor should rotate clockwise.
+    if (prev_u<0){
+      digitalWrite(brake, LOW);
+    }
+    digitalWrite(cw, HIGH);
+    digitalWrite(brake, HIGH);
+  }
+  else {
+    if (prev_u>0){
+      digitalWrite(brake, LOW);
+    }
+    digitalWrite(cw, LOW);
+    digitalWrite(brake, HIGH);
+  }
+  prev_u = u;
   // Signal motor function
-  
+  eprev=e;
+  Serial.print("Target: ");
+  Serial.print(target_pos);
+  Serial.print("\tPos: ");
+  Serial.println(pos);
+  analogWrite(pwm, pwr);
 }
 
 
@@ -108,7 +132,7 @@ void setup() {
 
 void loop() {
 
-  
+
   // Theta.
   mpu.update();
   thet = mpu.getAngleY()*0.0174533; // radians
