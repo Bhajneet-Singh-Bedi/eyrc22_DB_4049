@@ -34,7 +34,7 @@ ISR (TIMER1_OVF_vect)
 
 void setup() {
   // put your setup code here, to run once:
-  mpu.calcOffsets(true, true);
+  
   Serial.begin(9600);
   Wire.begin();
   byte status=mpu.begin();
