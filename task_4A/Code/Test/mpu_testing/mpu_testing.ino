@@ -34,7 +34,7 @@ ISR (TIMER1_OVF_vect)
 
 void setup() {
   // put your setup code here, to run once:
-  
+  mpu.calcOffsets(true, true);
   Serial.begin(9600);
   Wire.begin();
   byte status=mpu.begin();
@@ -42,7 +42,7 @@ void setup() {
   while(status!=0){ } // stop everything if could not connect to MPU6050
   Serial.println("MPU begin done!\n");
   //Serial.println(mpu.getAngleX());
-  mpu.calcOffsets(true, true);
+  
 //  timer1_init(); 
   Serial.println("Timer initialized\n");
 }
@@ -50,13 +50,13 @@ void setup() {
 void loop() {
   mpu.update();
   
-  Serial.print(mpu.getAngleX());
+  Serial.print(mpu.getAngleY());
   Serial.print("\t");
 //  Serial.print(mpu.getAngleY());
 //  Serial.print("\t");
 //  Serial.println(mpu.getAngleZ());
 
-  Serial.print(mpu.getGyroX());
+  Serial.print(mpu.getGyroY());
 //  Serial.print("\t");
 //  Serial.print(mpu.getGyroY());
 //  Serial.print("\t");

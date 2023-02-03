@@ -45,7 +45,10 @@ int lqr_controller(float yy[], float yy_setpoint[]){
 //    K[0]=-281.02199;   K[1]=-35.01541;    K[2]=-0.70711;    K[3]=-0.88350;
 //    K[0]=-217.99154;   K[1]=-27.49369;    K[2]=-0.70711;    K[3]=-0.88573;
 //    K[0]=-147.40983;   K[1]=-18.80253;    K[2]=-0.57735;    K[3]=-0.72496;
-    K[0]=-147.40983;   K[1]=-18.80253;    K[2]=-0.70711;    K[3]=-0.72496;
+//    K[0]=-147.40983;   K[1]=-18.80253;    K[2]=-0.70711;    K[3]=-0.72496;
+//    K[0]=-26.01250;   K[1]=-3.31595;   K[2]=-0.10000;   K[3]=-0.12580;
+//    K[0]=-28.07205;   K[1]=-3.65106;   K[2]=-0.14142;   K[3]=-0.17865;
+    K[0]=-28.47513;   K[1]=-3.65753;   K[2]=-0.14142;   K[3]=-0.17913;
   for (int i=0; i<sz; i++){
     mul=mul-(K[i]*(yy[i]-yy_setpoint[i]));
   }
@@ -99,7 +102,7 @@ int set_pos(){
 
   // Direction
   if (u<0){
-    analogWrite(pwm, pwr);
+    analogWrite(pwm, 255-pwr);
     if (prev_u>0){
       digitalWrite(brake, LOW);
     }
@@ -138,7 +141,7 @@ void setup() {
 //  digitalWrite(cw, HIGH); // gives positive value // Low will give negative
   analogWrite(pwm, 255); // 255 means stop // 0 means go.
   mpu.calcOffsets(true, true); 
-  M = 0.060*0.097*0.097/2; // Moment of Inertia.
+  M = 0.084*0.097*0.097/2; // Moment of Inertia.
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 }
 
