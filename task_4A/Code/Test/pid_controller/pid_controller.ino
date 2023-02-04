@@ -26,28 +26,38 @@ void readEncoder(){
 int prev_dir = 1;
 
 int setMotor(int dir, float pwr){
-  analogWrite(pwm, pwr);
+  analogWrite(pwm, 255-pwr);
+  
 
   if (dir == 1){
     if (prev_dir == -1){
       digitalWrite(brake, LOW);
-      delay(5);
+//      Serial.println("ONE");
     }
     else{
       digitalWrite(brake, HIGH);
+//      Serial.println("TWO");
     }
+    digitalWrite(brake, HIGH);
     digitalWrite(cw, HIGH);
+    prev_dir = dir;
+//    Serial.println("THREE");
   }
   else if (dir == -1){
     if (prev_dir == 1){
       digitalWrite(brake, LOW);
-      delay(5);
+//      Serial.println("1");
     }
     else{
       digitalWrite(brake, HIGH);
+//      Serial.println("2");
     }
+    digitalWrite(brake, HIGH);
     digitalWrite(cw, LOW);
+    prev_dir = dir;
+//    Serial.println("3");
   }  
+  
 }
 void setup() {
   // put your setup code here, to run once:
@@ -71,11 +81,11 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  int target_pos = 1200;
+  int target_pos = -1200;
 
   // PID constants
-  float kp = 1;
-  float kd = 0.025;
+  float kp = 1.01;
+  float kd = 0.19;
   float ki = 0.0;
 
   // time difference
@@ -90,17 +100,17 @@ void loop() {
   interrupts(); // turn interrupts back on
   
   // error
-  int e = target_pos-pos0;
-
+  int e = target_pos-pos;
+//  Serial.println(e);
   // derivative
   float dedt = (e-eprev)/(deltaT);
-
+//  Serial.println(dedt);
   // integral
   eIntegral = eIntegral + e*deltaT;
-
+//  Serial.println(eIntegral);
   // control signal
   float u = kp*e + kd*dedt + ki*eIntegral;
-  Serial.println(u);
+//  Serial.println(u);
   // motor power
   float pwr = fabs(u);
   if( pwr > 255 ){
@@ -120,8 +130,14 @@ void loop() {
   // store previous error
   eprev = e;
 
-//  Serial.print(target_pos);
-//  Serial.print(" ");
-//  Serial.print(pos0);
-//  Serial.println();
+  Serial.print(target_pos);
+  Serial.print(" ");
+  Serial.print(pos0);
+  Serial.println();
+//  Serial.println(digitalRead(brake));
+
+//  setMotor(-1, 245);
+//  delay(1000);
+//  setMotor(1, 245);
+//  delay(1000);
 }

@@ -29,7 +29,7 @@ void setup() {
   pinMode(cw, OUTPUT);
   pinMode(pwm, OUTPUT);
   digitalWrite(brake, HIGH); // Low means braking.
-  digitalWrite(cw, HIGH); // HIGH -> gives positive value(Clock-Wise) // Low will give negative(Anti-Clock-Wise)
+  digitalWrite(cw, LOW); // HIGH -> gives positive value(Clock-Wise) // Low will give negative(Anti-Clock-Wise)
   analogWrite(pwm, 245);
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 }
