@@ -2,7 +2,7 @@
 
 #define ENCA 2 //21-PD0 //19-RX1  //17-RX2
 #define ENCB 3 //20-PD1 //18-TX1  //16-TX2
-#define brake 48 //PL1
+#define brake 41 //PL1
 #define cw 11 // 1A
 #define pwm 9 // 2B
 #define pi = 3.141;
@@ -64,7 +64,7 @@ int set_rpm(){
     else{
       digitalWrite(brake, HIGH);
     }
-    char dir = "LOW";
+    char dir = "HIGH";
     setMotor(dir);
   }
   else if (trq<=0){
@@ -74,27 +74,28 @@ int set_rpm(){
     else{
       digitalWrite(brake, HIGH);
     }
-    char dir = "HIGH";
+    char dir = "LOW";
     setMotor(dir);
   }
   prev_u=trq;
 }
 int setMotor(char *dir){
+//  Serial.println(trq);
   int target_vel = 1000;// Going to make in interchangable from the serial monitor, later on.
-  if (trq>=-50 && trq<=50){
+  if (trq>=-2 && trq<=2){
     target_vel=0;
   }
   long currT = micros();
   float delT = ((float)(currT-prevT))/1.0e6;
   prevT = currT;
   int pos_needed = ((target_vel*delT*100)/0.10471975512) + p_pos;
-
+  Serial.println(pos_needed);
   // PID constants
   float kp=1, kd=0, ki=0;
 
   // error
   int e = pos-pos_needed;
-
+  
   // derivative
   float dedt = (e-eprev)/delT;
 
@@ -103,17 +104,20 @@ int setMotor(char *dir){
 
   // Control Signal
   float u = kp*e + kd*dedt + ki*eIntegral;
-
+//  Serial.println(u);
   float pws = fabs(u);
   if (pws>255){
     pws=255;
   }
 
-  char drr = "LOW";
+  char drr = "HIGH";
   if (u<0){
-    char drr = HIGH;
+    char drr = LOW;
   }
   eprev=e;
+//  Serial.print(drr);
+//  Serial.print("PWS: ");
+//  Serial.println(pws);
   analogWrite(cw, drr);
   analogWrite(pwm, pws);
 }
@@ -146,7 +150,7 @@ void loop() {
   thet = mpu.getAngleY()*0.0174533; // radians
   // Theta_dot.
   thet_dot = mpu.getGyroY()*0.0174533; // radians
-  Serial.println(thet);
+//  Serial.println(thet);
     // This is alpha
   // 0.0174533
   alp = (pos*360*0.10471975512)/100; // radians
