@@ -12,6 +12,7 @@ MPU6050 mpu(Wire);
 float pos, po, thet, thet_dot, alp, alp_dot, prev_alp=0, prev_pos, currentTM, prevTM=0, dtt=0, rp, prev_rp=0, deltaT=0, prev_u=0;
 float y[4]={}, y_setpoint[4]={} , cntr=1, vll, trq, sz=4, M, del_pos, angAc, prev_vel=0, vel_now, vel_give, target_pos, p_pos;
 //int pos=0;
+char drr, prev_drr;
 long prevT=0;
 float eprev=0, eIntegral=0, dts=0;
 int K[4]={};
@@ -56,45 +57,30 @@ int lqr_controller(float yy[], float yy_setpoint[]){
 
 }
 
-int set_rpm(){
-  if (trq>0){
-    if (prev_u<0){
-      digitalWrite(brake, LOW);
-    }
-    else{
-      digitalWrite(brake, HIGH);
-    }
-    char dir = "HIGH";
-    setMotor(dir);
-  }
-  else if (trq<=0){
-    if (prev_u>0){
-      digitalWrite(brake, LOW);
-    }
-    else{
-      digitalWrite(brake, HIGH);
-    }
-    char dir = "LOW";
-    setMotor(dir);
-  }
-  prev_u=trq;
-}
-int setMotor(char *dir){
+
+int setMotor(){
 //  Serial.println(trq);
-  int target_vel = 1000;// Going to make in interchangable from the serial monitor, later on.
-  if (trq>=-2 && trq<=2){
-    target_vel=0;
+  int target_vel;
+  Serial.println(trq);
+  if (trq<0){  
+    target_vel = 1000;// Going to make in interchangable from the serial monitor, later on.
   }
+  else{
+    target_vel=-1000;
+  }
+//  if (trq>=-1 && trq<=1){
+//    target_vel=0;
+//  }
   long currT = micros();
   float delT = ((float)(currT-prevT))/1.0e6;
   prevT = currT;
   int pos_needed = ((target_vel*delT*100)/0.10471975512) + p_pos;
-  Serial.println(pos_needed);
+//  Serial.println(pos_needed);
   // PID constants
-  float kp=1, kd=0, ki=0;
+  float kp=1.01, kd=0.19, ki=0;
 
   // error
-  int e = pos-pos_needed;
+  int e = pos_needed-pos;
   
   // derivative
   float dedt = (e-eprev)/delT;
@@ -109,17 +95,37 @@ int setMotor(char *dir){
   if (pws>255){
     pws=255;
   }
-
-  char drr = "HIGH";
+  
+   drr = "HIGH";
   if (u<0){
-    char drr = LOW;
+     drr = LOW;
   }
   eprev=e;
+  digitalWrite(brake, HIGH);
+  if (drr == "HIGH"){
+    if (prev_drr == "LOW"){
+      digitalWrite(brake, LOW);
+      delay(5);
+    }
+    else if (prev_drr == "HIGH"){
+      digitalWrite(brake, HIGH);
+    }
+  }
+  else if (drr == "LOW"){
+    if (prev_drr == "HIGH"){
+      digitalWrite(brake, "LOW");
+      delay(5);
+    }
+    else if (prev_drr == "LOW"){
+      digitalWrite(brake, HIGH);
+    }
+  }
+  prev_drr = drr;
 //  Serial.print(drr);
 //  Serial.print("PWS: ");
 //  Serial.println(pws);
-  analogWrite(cw, drr);
-  analogWrite(pwm, pws);
+  digitalWrite(cw, drr);
+  analogWrite(pwm, 255-pws);
 }
 
 void setup() {
@@ -180,7 +186,7 @@ void loop() {
   
   trq = lqr_controller(y, y_setpoint);
 
-  set_rpm();
+  setMotor();
 //  Serial.print("TRQ: ");
 //  Serial.println(trq);
 
