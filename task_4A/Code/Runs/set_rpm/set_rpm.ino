@@ -61,12 +61,12 @@ int lqr_controller(float yy[], float yy_setpoint[]){
 int setMotor(){
 //  Serial.println(trq);
   int target_vel;
-  Serial.println(trq);
+//  Serial.println(trq);
   if (trq<0){  
-    target_vel = 1000;// Going to make in interchangable from the serial monitor, later on.
+    target_vel = 500;// Going to make in interchangable from the serial monitor, later on.
   }
   else{
-    target_vel=-1000;
+    target_vel=-500;
   }
 //  if (trq>=-1 && trq<=1){
 //    target_vel=0;
@@ -77,7 +77,7 @@ int setMotor(){
   int pos_needed = ((target_vel*delT*100)/0.10471975512) + p_pos;
 //  Serial.println(pos_needed);
   // PID constants
-  float kp=1.01, kd=0.19, ki=0;
+  float kp=1.01, kd=0.05, ki=0;
 
   // error
   int e = pos_needed-pos;
@@ -105,7 +105,7 @@ int setMotor(){
   if (drr == "HIGH"){
     if (prev_drr == "LOW"){
       digitalWrite(brake, LOW);
-      delay(5);
+//      delay(5);
     }
     else if (prev_drr == "HIGH"){
       digitalWrite(brake, HIGH);
@@ -114,7 +114,7 @@ int setMotor(){
   else if (drr == "LOW"){
     if (prev_drr == "HIGH"){
       digitalWrite(brake, "LOW");
-      delay(5);
+//      delay(5);
     }
     else if (prev_drr == "LOW"){
       digitalWrite(brake, HIGH);
@@ -187,6 +187,7 @@ void loop() {
   trq = lqr_controller(y, y_setpoint);
 
   setMotor();
+  Serial.println(digitalRead(brake));
 //  Serial.print("TRQ: ");
 //  Serial.println(trq);
 
