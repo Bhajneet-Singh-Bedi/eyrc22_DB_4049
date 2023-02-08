@@ -5,9 +5,6 @@
 #define brake 41 //PL1
 #define cw 11 // 1A
 #define pwm 9 // 2B
-#define enA 7
-#define in1 24
-#define in2 25
 #define pi = 3.141;
 
 MPU6050 mpu(Wire);
@@ -141,13 +138,8 @@ void setup() {
   pinMode(brake, OUTPUT);
   pinMode(cw, OUTPUT);
   pinMode(pwm, OUTPUT);
-  pinMode(enA, OUTPUT);
-  pinMode(in1, OUTPUT);
-  pinMode(in2, OUTPUT);
 //  digitalWrite(ENCA, HIGH);
   digitalWrite(brake, LOW); // Low means braking.
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, LOW);
 //  digitalWrite(cw, HIGH); // gives positive value // Low will give negative
   analogWrite(pwm, 255); // 255 means stop // 0 means go.
   mpu.calcOffsets(true, true); 
@@ -204,7 +196,4 @@ void loop() {
 //  st_trq(trq);
   prev_vel=vel_now;
   p_pos = prev_pos;
-  analogWrite(enA, 200);
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
 }
