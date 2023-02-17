@@ -153,7 +153,7 @@ void loop() {
   thet = mpu.getAngleY()*0.0174533; // radians
   // Theta_dot.
   thet_dot = mpu.getGyroY()*0.0174533; // radians
-  Serial.println(thet);
+//  Serial.println(thet);
     // This is alpha
   // 0.0174533
   alp = (pos*360*0.10471975512)/100; // radians
@@ -182,8 +182,8 @@ void loop() {
   y_setpoint[0]=0;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
   
   trq = lqr_controller(y, y_setpoint);
-//  Serial.print("TRQ: ");
-//  Serial.println(trq);
+  Serial.print("TRQ: ");
+  Serial.println(trq);
 
 
   // Now use this trq val to provide torque to the motor.
