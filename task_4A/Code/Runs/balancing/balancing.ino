@@ -167,8 +167,10 @@ void loop() {
     alp_dot = (alp-prev_alp)/dtt; // radians
     // Finnding rpm of the motor.
     del_pos = pos-prev_pos; // In ppr
-    rp = (del_pos*0.10471975512)/(dts*100); // This will probably give me rpms in degrees for coverting it to radians(angular velocity) mult it with 0.10471975512
+//    rp = (del_pos*0.10471975512)/(dts*100); // This will probably give me rpms in degrees for coverting it to radians(angular velocity) mult it with 0.10471975512
+    rp = (del_pos)/(dts*100);
     // And to degrees mult. with 57.29578
+    Serial.println(rp);
     vel_now = rp;
     prev_alp=alp;
     p_pos = prev_pos; // to be used later.
@@ -182,8 +184,8 @@ void loop() {
   y_setpoint[0]=0;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
   
   trq = lqr_controller(y, y_setpoint);
-  Serial.print("TRQ: ");
-  Serial.println(trq);
+//  Serial.print("TRQ: ");
+//  Serial.println(trq);
 
 
   // Now use this trq val to provide torque to the motor.
