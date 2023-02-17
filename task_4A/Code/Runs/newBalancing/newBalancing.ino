@@ -8,7 +8,7 @@
 MPU6050 mpu(Wire);
 int thet, thet_dot, pos, prev_pos=0, alp, alp_dot, tm=1, al_curr, al_prev=0, prev_alp, sz=4;
 float K[4]={}, y[4]={}, y_setpoint[4]={}, trq, rp, rp_curr, rp_prev=0;
-float M, v_give, v_now;
+float M, v_give, v_now, target_pos, eprev=0, eIntegral, prev_u;
 
 void readEncoder(){
   //Serial.print("read encoder");
@@ -56,7 +56,55 @@ int setTorque(float tr, float dttt, float v_now){
 
 //  T = M * angular accleration
   v_give = ((tr*dttt)/M) + v_now;
-  Serial.println(v_give);
+//  Serial.println(v_give);
+  // Now I need pos to give,
+//  rp = ((pos - prev_pos)*600)/dtt;
+  target_pos = ((v_give*dttt)/600) + pos;
+  setPID(target_pos, dttt);
+}
+
+int setPID(float target_pos, float dttt){
+  // PID constants
+  float kp=1, kd=0, ki=0;
+
+  // error
+  int e = pos-target_pos;
+
+  // derivative
+  float dedt = (e-eprev)/dttt;
+  eprev = e;
+  // Integral
+  eIntegral = eIntegral + e*dttt;
+
+  // Control Signal
+  float u = kp*e + kd*dedt + ki*eIntegral;
+
+  // motor power
+  float pwr = fabs(u);
+  if (pwr>255){
+    pwr = 255;
+  }
+
+  Serial.println(255-pwr);
+  // Direction
+  if (u<0){
+    analogWrite(pwm, 255-pwr);
+    if (prev_u>0){
+      digitalWrite(brake, LOW);
+    }
+    digitalWrite(brake, HIGH);
+    delay(10);
+    digitalWrite(cw, LOW);
+  }
+  else{
+    analogWrite(pwm, pwr);
+    if (prev_u<=0){
+      digitalWrite(brake, LOW);
+    }
+    digitalWrite(brake, HIGH);
+    delay(10);
+    digitalWrite(cw, HIGH);
+}
 }
 
 void setup() {
@@ -84,22 +132,25 @@ void loop() {
   
   mpu.update();
   thet = -mpu.getAngleY();
+  thet_dot = -mpu.getGyroY()*1000;
 //  Serial.println(thet);
   // Iterate for some fixed time then note down thet_dot.
   al_curr = millis();
   alp = pos*360/100;
   float dtt = al_curr-al_prev;
-  alp_dot = alp-prev_alp/dtt;
-  al_prev = al_curr;    // TIME 
+  al_prev = al_curr;    // TIME
+  alp_dot = ((alp-prev_alp)*1000)/dtt*1000;
+
 
 
   // Finding rpm of the motor.
-  rp_curr = millis();
-  delay(5);
-  float dtrp = rp_curr - rp_prev;    // TIME;
-  rp = ((pos - prev_pos)*600)/dtrp;
+//  rp_curr = millis();
+//  delay(5);
+//  float dtrp = rp_curr - rp_prev;    // TIME;
+  rp = ((pos - prev_pos)*600)/dtt;
+//  rp = ((pos - prev_pos))/dtt;
 //  Serial.println(rp);
-  rp_prev = rp_curr;
+//  rp_prev = rp_curr;
   prev_pos = pos;
 
   y[0]=thet; y[1]=thet_dot; y[2]=alp;  y[3]=alp_dot;
@@ -108,7 +159,7 @@ void loop() {
   trq = lqrController(y, y_setpoint);
 //  Serial.println(trq);
 
-  setTorque(trq, dtt, rp);
+  setTorque(trq, dtt*1000, rp*0.10471975512*57.29578);
   
  // END
 }
