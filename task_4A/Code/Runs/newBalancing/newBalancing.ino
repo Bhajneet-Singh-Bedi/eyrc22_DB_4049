@@ -1,30 +1,62 @@
+#include <util/atomic.h>
 #include <MPU6050_light.h>
+
 #define ENCA 2 //21-PD0 //19-RX1  //17-RX2
 #define ENCB 3 //20-PD1 //18-TX1  //16-TX2
 #define brake 48 //PL1
 #define cw 11 // 1A
-#define pwm 9 // 2B
+#define pwm 9 // 
 
 MPU6050 mpu(Wire);
-int thet, thet_dot, pos, prev_pos=0, alp, alp_dot, tm=1, al_curr, al_prev=0, prev_alp, sz=4;
-float K[4]={}, y[4]={}, y_setpoint[4]={}, trq, rp, rp_curr, rp_prev=0;
-float M, v_give, v_now, target_pos, eprev=0, eIntegral, prev_u;
+
+// globals
+float prev = 0, K[4]={}, y[4]={}, y_setpoint[4]={}, M;
+float thet, thet_dot, alp, alp_dot, prevAlp=0, vGive;
+long prevT=0;
+int posPrev=0,  sz=4, trq;
+volatile int pos_i=0; 
+volatile float velocity_i=0;
+volatile long prevT_i=0;
+
 
 void readEncoder(){
-  //Serial.print("read encoder");
   int b=digitalRead(ENCB);
+  int increment=0;
   if (b>0){
-    pos++;
+    increment=1;
+//    pos_i++;
   }
   else{
-    pos--;
+    increment=-1;
+//    pos_i--;
   }
+  pos_i=pos_i+increment;
+//  Serial.println(pos_i);
+
+  long currT=micros();
+  float deltaT=((float) (currT-prevT_i))/1.0e6;
+  velocity_i=increment/deltaT;
+  prevT_i=currT;
 }
 
-float lqrController(float yy[], float yy_setpoint[]){
+
+void setMotor(int dir, int pwr){
+
+  if (dir == 1){
+    digitalWrite(cw, HIGH);
+  }
+  else{
+    digitalWrite(cw, LOW);
+  }
+//  Serial.println(255-pwr);
+  digitalWrite(brake, HIGH);
+  analogWrite(pwm, 255-pwr);
+}
+
+int lqrController(float yy[], float yy_setpoint[]){
   float mul=0;
-//    K = [-311.4268,-85.9813,-1.0000,-1.7637];
-  K[0]=-41.4663;K[1]=-6.4185;K[2]=-1.0000;K[3]=-1.3120;
+  //  K = [-311.4268,-85.9813,-1.0000,-1.7637];
+//  K[0]=-41.4663;K[1]=-6.4185;K[2]=-1.0000;K[3]=-1.3120;
 //  K[0]=-49.32124;K[1]=-7.25900;K[2]=-1.00000;K[3]=-1.29629;
 //  K[0]=-49.91982;K[1]=-7.31929;K[2]=-1.00000;K[3]=-1.29515;
 //  K[0]=-69.90391;K[1]=-10.38223;K[2]=-1.00000;K[3]=-1.29991;
@@ -43,76 +75,43 @@ float lqrController(float yy[], float yy_setpoint[]){
 //    K[0]=-147.40983;   K[1]=-18.80253;    K[2]=-0.70711;    K[3]=-0.72496;
 //    K[0]=-26.01250;   K[1]=-3.31595;   K[2]=-0.10000;   K[3]=-0.12580;
 //    K[0]=-28.07205;   K[1]=-3.65106;   K[2]=-0.14142;   K[3]=-0.17865;
-//    K[0]=-28.47513;   K[1]=-3.65753;   K[2]=-0.14142;   K[3]=-0.17913;
+    K[0]=-28.47513;   K[1]=-3.65753;   K[2]=-0.14142;   K[3]=-0.17913;
   for (int i=0; i<sz; i++){
-//    Serial.println(i);
     mul=mul-(K[i]*(yy[i]-yy_setpoint[i]));
   }
   return mul;
-
 }
 
-int setTorque(float tr, float dttt, float v_now){
 
-//  T = M * angular accleration
-  v_give = ((tr*dttt)/M) + v_now;
-//  Serial.println(v_give);
-  // Now I need pos to give,
-//  rp = ((pos - prev_pos)*600)/dtt;
-  target_pos = ((v_give*dttt)/600) + pos;
-  setPID(target_pos, dttt);
-}
+void setTorque(float dtt, int trq, float vNow){
+  // T = M*angular acc.
+  vGive = ((trq*dtt)/M) + vNow;
 
-int setPID(float target_pos, float dttt){
-  // PID constants
-  float kp=1, kd=0, ki=0;
+  Serial.println(vGive);
+  float kp=1;
+  float e=vGive-vNow;
+  float u=kp*e;
 
-  // error
-  int e = pos-target_pos;
+  // Direction.
+  int dir=1;
+  if (u<0){
+    dir=-1;
+  }
 
-  // derivative
-  float dedt = (e-eprev)/dttt;
-  eprev = e;
-  // Integral
-  eIntegral = eIntegral + e*dttt;
+  int pwr = (int) fabs(u);
 
-  // Control Signal
-  float u = kp*e + kd*dedt + ki*eIntegral;
-
-  // motor power
-  float pwr = fabs(u);
   if (pwr>255){
     pwr = 255;
   }
+  setMotor(dir, pwr);
+}
 
-  Serial.println(255-pwr);
-  // Direction
-  if (u<0){
-    analogWrite(pwm, 255-pwr);
-    if (prev_u>0){
-      digitalWrite(brake, LOW);
-    }
-    digitalWrite(brake, HIGH);
-    delay(10);
-    digitalWrite(cw, LOW);
-  }
-  else{
-    analogWrite(pwm, pwr);
-    if (prev_u<=0){
-      digitalWrite(brake, LOW);
-    }
-    digitalWrite(brake, HIGH);
-    delay(10);
-    digitalWrite(cw, HIGH);
-}
-}
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   Wire.begin();
   mpu.begin();
-  mpu.calcOffsets(true, true);
   pinMode(ENCA, INPUT);
   pinMode(ENCB, INPUT);
   pinMode(brake, OUTPUT);
@@ -122,44 +121,61 @@ void setup() {
   digitalWrite(brake, LOW); // Low means braking.
 //  digitalWrite(cw, HIGH); // gives positive value // Low will give negative
   analogWrite(pwm, 255); // 255 means stop // 0 means go.
-  mpu.calcOffsets(true, true); 
+//  mpu.calcOffsets(true, true); 
   M = 0.084*0.097*0.097/2; // Moment of Inertia.
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  
+//  Serial.println(pos_i);
+
+
   mpu.update();
-  thet = -mpu.getAngleY();
-  thet_dot = -mpu.getGyroY()*1000;
-//  Serial.println(thet);
-  // Iterate for some fixed time then note down thet_dot.
-  al_curr = millis();
-  alp = pos*360/100;
-  float dtt = al_curr-al_prev;
-  al_prev = al_curr;    // TIME
-  alp_dot = ((alp-prev_alp)*1000)/dtt*1000;
+  thet = mpu.getAngleY()*0.0174533; // radians
+  // Theta_dot.
+  thet_dot = mpu.getGyroY()*0.0174533; // radians
 
-
-
-  // Finding rpm of the motor.
-//  rp_curr = millis();
-//  delay(5);
-//  float dtrp = rp_curr - rp_prev;    // TIME;
-  rp = ((pos - prev_pos)*600)/dtt;
-//  rp = ((pos - prev_pos))/dtt;
-//  Serial.println(rp);
-//  rp_prev = rp_curr;
-  prev_pos = pos;
-
+  float curr = micros();
+  alp = (pos_i*360*0.10471975512)/100; // radians
+  float dtt = curr - prev;
+  prev = curr;
+  alp_dot = (alp-prevAlp)/dtt;
+  prevAlp=alp;
+  
+  
+//  int pwr = 100/3.0*micros()/1.0e6;
+//  int dir = 1;
+//  setMotor(dir, pwr);
+//  Serial.print(thet);
+//  Serial.print("\t");
+//  Serial.print(thet_dot);
+//  Serial.println("\t");
+  
   y[0]=thet; y[1]=thet_dot; y[2]=alp;  y[3]=alp_dot;
   y_setpoint[0]=0;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
-
   trq = lqrController(y, y_setpoint);
 //  Serial.println(trq);
+  int pos=0;
+  float velocity2=0;
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+    pos = pos_i;
+    velocity2=velocity_i;
+  }
 
-  setTorque(trq, dtt*1000, rp*0.10471975512*57.29578);
-  
- // END
+//   Computing velocity with method 1
+//  long currT = micros();
+//  float deltaT = ((float) (currT-prevT))/1.0e6;
+//  float velocity1 = (pos-posPrev)/deltaT;
+//  posPrev=pos;
+//  prevT = currT;  
+
+
+  float v2 = velocity2/600.0*60.0;
+//  Serial.print(velocity1);
+//  Serial.print(" ");
+//  Serial.print(v2);
+//  Serial.println();
+  setTorque(dtt, trq, v2);
+
+
 }

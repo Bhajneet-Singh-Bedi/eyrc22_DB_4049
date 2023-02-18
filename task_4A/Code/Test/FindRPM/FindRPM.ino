@@ -6,42 +6,45 @@
 #define cw 11 // 1A
 #define pwm 9 // 
 
-// Global variables.
-long prevT=0; int posPrev=0; volatile int pos_i=0;
+// globals
+long prevT=0;
+int posPrev=0;
+volatile int pos_i=0; 
 volatile float velocity_i=0;
 volatile long prevT_i=0;
 
-//int thet, thet_dot, pos, alp, alp_dot, tm=1, curr=0, prev=0, prev_alp, sz=4;
-//float K[4]={}, y[4]={}, y_setpoint[4]={}, trq;
-//float rp, nw, prev_nw, dtt;
+
 void readEncoder(){
-  //Serial.print("read encoder");
   int b=digitalRead(ENCB);
-  int incr=0;
+  int increment=0;
   if (b>0){
-    incr=1;
+    increment=1;
 //    pos_i++;
   }
   else{
-    incr=-1;
+    increment=-1;
 //    pos_i--;
   }
-  pos_i+=incr;
-//  long currT = micros();
-//  float deltaT = ((float) (currT-prevT_i))/1.0e6;
-//  velocity_i =incr/deltaT;
-//  prevT_i=currT; 
+  pos_i=pos_i+increment;
+//  Serial.println(pos_i);
+
+  long currT=micros();
+  float deltaT=((float) (currT-prevT_i))/1.0e6;
+  velocity_i=increment/deltaT;
+  prevT_i=currT;
 }
 
-void setMotor(int dir, float pwr){
+
+void setMotor(int dir, int pwr){
+
   if (dir == 1){
     digitalWrite(cw, HIGH);
-    digitalWrite(brake, HIGH);
   }
   else{
     digitalWrite(cw, LOW);
-    digitalWrite(brake, HIGH);
   }
+//  Serial.println(255-pwr);
+  digitalWrite(brake, HIGH);
   analogWrite(pwm, 255-pwr);
 }
 
@@ -56,27 +59,36 @@ void setup() {
 //  digitalWrite(ENCA, HIGH);
   digitalWrite(brake, LOW); // Low means braking.
 //  digitalWrite(cw, HIGH); // gives positive value // Low will give negative
-//  analogWrite(pwm, 255); // 255 means stop // 0 means go.
+  analogWrite(pwm, 255); // 255 means stop // 0 means go.
 //  mpu.calcOffsets(true, true); 
 //  M = 0.084*0.097*0.097/2; // Moment of Inertia.
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 }
 
 void loop() {
+//  Serial.println(pos_i);
   int pwr = 100/3.0*micros()/1.0e6;
-  setMotor(1, pwr);
-  int pos = 0;
+  int dir = 1;
+  setMotor(dir, pwr);
+
+  int pos=0;
+  float velocity2=0;
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
     pos = pos_i;
+    velocity2=velocity_i;
   }
 
-  // Compute velocity with method 1
-  long currT=micros();
-  float deltaT=((float) (currT-prevT))/1.0e6;
-  float velocity1 = (pos-posPrev)/deltaT;
-  posPrev=pos;
-  prevT = currT;
+//   Computing velocity with method 1
+//  long currT = micros();
+//  float deltaT = ((float) (currT-prevT))/1.0e6;
+//  float velocity1 = (pos-posPrev)/deltaT;
+//  posPrev=pos;
+//  prevT = currT;  
 
-  Serial.print(velocity1);
+
+  float v2 = velocity2/600.0*60.0;
+//  Serial.print(velocity1);
+//  Serial.print(" ");
+  Serial.print(v2);
   Serial.println();
 }
