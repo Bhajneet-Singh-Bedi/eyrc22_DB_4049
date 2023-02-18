@@ -11,7 +11,7 @@ MPU6050 mpu(Wire);
 
 // globals
 float prev = 0, K[4]={}, y[4]={}, y_setpoint[4]={}, M;
-float thet, thet_dot, alp, alp_dot, prevAlp=0, vGive;
+float thet, thet_dot, alp, alp_dot, prevAlp=0, vGive, prev_u=0;
 long prevT=0;
 int posPrev=0,  sz=4, trq;
 volatile int pos_i=0; 
@@ -40,13 +40,19 @@ void readEncoder(){
 }
 
 
-void setMotor(int dir, int pwr){
-
+void setMotor(int dir, int pwr, float prev_u){
+  
   if (dir == 1){
-    digitalWrite(cw, HIGH);
+    if (prev_u == -1){
+      digitalWrite(brake, LOW);
+    }
+    digitalWrite(cw, LOW);
   }
   else{
-    digitalWrite(cw, LOW);
+    if (prev_u == 1){
+      digitalWrite(brake, LOW);
+    }
+    digitalWrite(cw, HIGH);
   }
 //  Serial.println(255-pwr);
   digitalWrite(brake, HIGH);
@@ -103,8 +109,10 @@ void setTorque(float dtt, int trq, float vNow){
   if (pwr>255){
     pwr = 255;
   }
-  setMotor(dir, pwr);
+  setMotor(dir, pwr, prev_u);
+  prev_u=u;
 }
+
 
 
 void setup() {
