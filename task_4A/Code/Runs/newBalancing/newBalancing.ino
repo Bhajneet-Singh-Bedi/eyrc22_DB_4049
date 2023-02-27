@@ -40,24 +40,7 @@ void readEncoder(){
 }
 
 
-void setMotor(int dir, int pwr, float prev_u){
-  
-  if (dir == 1){
-    if (prev_u == -1){
-      digitalWrite(brake, LOW);
-    }
-    digitalWrite(cw, LOW);
-  }
-  else{
-    if (prev_u == 1){
-      digitalWrite(brake, LOW);
-    }
-    digitalWrite(cw, HIGH);
-  }
-//  Serial.println(255-pwr);
-  digitalWrite(brake, HIGH);
-  analogWrite(pwm, 255-pwr);
-}
+
 
 int lqrController(float yy[], float yy_setpoint[]){
   float mul=0;
@@ -81,20 +64,42 @@ int lqrController(float yy[], float yy_setpoint[]){
 //    K[0]=-147.40983;   K[1]=-18.80253;    K[2]=-0.70711;    K[3]=-0.72496;
 //    K[0]=-26.01250;   K[1]=-3.31595;   K[2]=-0.10000;   K[3]=-0.12580;
 //    K[0]=-28.07205;   K[1]=-3.65106;   K[2]=-0.14142;   K[3]=-0.17865;
-    K[0]=-28.47513;   K[1]=-3.65753;   K[2]=-0.14142;   K[3]=-0.17913;
+//    K[0]=-28.47513;   K[1]=-3.65753;   K[2]=-0.14142;   K[3]=-0.17913;
+  K[0]=-272.09980;   K[1]=-36.50311;    K[2]=-1.00000;    K[3]=-1.26900;
   for (int i=0; i<sz; i++){
     mul=mul-(K[i]*(yy[i]-yy_setpoint[i]));
   }
   return mul;
 }
 
+void setMotor(int dir, int pwr, float prev_u){
+  
+  if (dir == 1){
+    if (prev_u == -1){
+      digitalWrite(brake, LOW);
+    }
+    digitalWrite(cw, LOW);
+  }
+  else{
+    if (prev_u == 1){
+      digitalWrite(brake, LOW);
+    }
+    digitalWrite(cw, HIGH);
+  }
+//  Serial.println(255-pwr);
+  digitalWrite(brake, HIGH);
+  analogWrite(pwm, 255-pwr);
+}
 
 void setTorque(float dtt, int trq, float vNow){
   // T = M*angular acc.
-  vGive = ((trq*dtt)/M) + vNow;
+//  Serial.print(trq);
+//  Serial.print("\t");
+  vGive = ((trq*dtt)/M*1.0e6) + vNow;
+//  Serial.println(vGive);
 
-  Serial.println(vGive);
-  float kp=1;
+//  Serial.println(vGive);
+  float kp=3;
   float e=vGive-vNow;
   float u=kp*e;
 
@@ -129,8 +134,8 @@ void setup() {
   digitalWrite(brake, LOW); // Low means braking.
 //  digitalWrite(cw, HIGH); // gives positive value // Low will give negative
   analogWrite(pwm, 255); // 255 means stop // 0 means go.
-//  mpu.calcOffsets(true, true); 
-  M = 0.084*0.097*0.097/2; // Moment of Inertia.
+  mpu.calcOffsets(true, true); 
+  M = 0.134*0.097*0.097/2; // Moment of Inertia.
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 }
 
@@ -139,12 +144,16 @@ void loop() {
 
 
   mpu.update();
-  thet = mpu.getAngleY()*0.0174533; // radians
+//  Serial.println(mpu.getAngleY());
+//  *0.0174533
+  thet = mpu.getAngleY(); // radians
   // Theta_dot.
-  thet_dot = mpu.getGyroY()*0.0174533; // radians
+  // radians
+  thet_dot = mpu.getGyroY(); // radians
 
   float curr = micros();
-  alp = (pos_i*360*0.10471975512)/100; // radians
+  // radians - 0.10471975512
+  alp = (pos_i*360)/100; // radians
   float dtt = curr - prev;
   prev = curr;
   alp_dot = (alp-prevAlp)/dtt;
@@ -178,7 +187,7 @@ void loop() {
 //  prevT = currT;  
 
 
-  float v2 = velocity2/600.0*60.0;
+  float v2 = velocity2/100.0*60.0;
 //  Serial.print(velocity1);
 //  Serial.print(" ");
 //  Serial.print(v2);

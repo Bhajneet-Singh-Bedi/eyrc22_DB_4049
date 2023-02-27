@@ -1,5 +1,5 @@
-#define ENCA 19 //21-PD0 //19-RX1
-#define ENCB 18 //20-PD1 //18-TX1
+#define ENCA 2 //21-PD0 //19-RX1
+#define ENCB 3 //20-PD1 //18-TX1
 #define brake 48 //PL1
 #define cw 11 // 1A
 #define pwm 9 // 2B
@@ -39,8 +39,8 @@ int rounds(){
     old_alpha=new_alpha;
     prevMillis=currentMillis;
     max_rpm=max(rpm, prev_rpm);
-    Serial.print("Max RPM: ");
-    Serial.print(max_rpm);
+//    Serial.print("Max RPM: ");
+//    Serial.print(max_rpm);
     prev_rpm=rpm;
   }
   return rpm;
@@ -60,7 +60,7 @@ void setup() {
   digitalWrite(cw, HIGH); // gives positive value // Low will give negative
   analogWrite(pwm, 255);
   M = 0.134*0.097*0.097/2;
-  Serial.print("hi");
+//  Serial.print("hi");
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 }
 
@@ -69,6 +69,7 @@ void loop() {
 
 //  Serial.print("Hello World");
 //  Serial.print("Hello");
+  Serial.println(pos);
   alpha=(pos*360*0.0174533)/100;
 
 //  mil_now=millis();
@@ -81,17 +82,17 @@ void loop() {
   // 2727.28 -> with all screws.
   // 2828 -> without screws.
   mil_now_5=millis();
-  if (mil_now_5-mil_then_5>=5000){
+  if (mil_now_5-mil_then_5>=2000){
     analogWrite(pwm, 255-temp);
     temp+=5;
     mil_then_5=mil_now_5;
   }
-  Serial.print("Temp: ");
-  Serial.print(temp);
+//  Serial.print("Temp: ");
+//  Serial.print(temp);
 
   rpms=rounds();
-  Serial.print("\tRounds: ");
-  Serial.println(rpms);
+//  Serial.print("\tRounds: ");
+//  Serial.println(rpms);
 
 
   alpha_then=alpha; 
