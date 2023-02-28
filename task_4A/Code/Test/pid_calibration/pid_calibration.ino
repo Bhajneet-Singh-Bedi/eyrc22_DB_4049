@@ -11,12 +11,13 @@ MPU6050 mpu(Wire);
 
 // globals
 float prev = 0, K[4]={}, y[4]={}, y_setpoint[4]={}, M;
-float thet, thet_dot, alp, alp_dot, prevAlp=0, vGive, prev_u=0;
+float thet, thet_dot, alp, alp_dot, prevAlp=0, vGive, prev_u=0, deltaT;
 long prevT=0;
 int posPrev=0,  sz=4, trq;
 volatile int pos_i=0; 
 volatile float velocity_i=0;
 volatile long prevT_i=0;
+float eintegral = 0;
 
 
 void readEncoder(){
@@ -34,7 +35,7 @@ void readEncoder(){
 //  Serial.println(pos_i);
 
   long currT=micros();
-  float deltaT=((float) (currT-prevT_i))/1.0e6;
+  deltaT=((float) (currT-prevT_i))/1.0e6;
   velocity_i=increment/deltaT;
   prevT_i=currT;
 }
@@ -75,33 +76,37 @@ int lqrController(float yy[], float yy_setpoint[]){
 void setMotor(int dir, int pwr, float prev_u){
   
   if (dir == 1){
-    if (prev_u == -1){
-      digitalWrite(brake, LOW);
-    }
-    digitalWrite(cw, LOW);
-  }
-  else{
-    if (prev_u == 1){
+    if (prev_u <= 0){
       digitalWrite(brake, LOW);
     }
     digitalWrite(cw, HIGH);
+  }
+  else{
+    if (prev_u >= 0){
+      digitalWrite(brake, LOW);
+    }
+    digitalWrite(cw, LOW);
   }
 //  Serial.println(255-pwr);
   digitalWrite(brake, HIGH);
   analogWrite(pwm, 255-pwr);
 }
 
-void setTorque(float dtt, int trq, float vNow){
+void setTorque(float currT, int trq, float vNow){
   // T = M*angular acc.
 //  Serial.print(trq);
 //  Serial.print("\t");
-  vGive = ((trq*dtt)/M) + vNow;
+//  vGive = ((trq*dtt)/M*1.0e6) + vNow;
 //  Serial.println(vGive);
-
-//  Serial.println(vGive);
-  float kp=3;
+  float vGive = 100;
+  Serial.print(vNow);
+  Serial.print("\t");
+  Serial.println(vGive);
+  float kp=1.5;
+  float ki=1.5;
   float e=vGive-vNow;
-  float u=kp*e;
+  eintegral = eintegral + e*deltaT;
+  float u=kp*e + ki*eintegral;
 
   // Direction.
   int dir=1;
@@ -168,9 +173,9 @@ void loop() {
 //  Serial.print(thet_dot);
 //  Serial.println("\t");
   
-  y[0]=thet; y[1]=thet_dot; y[2]=alp;  y[3]=alp_dot;
-  y_setpoint[0]=0;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
-  trq = lqrController(y, y_setpoint);
+//  y[0]=thet; y[1]=thet_dot; y[2]=alp;  y[3]=alp_dot;
+//  y_setpoint[0]=0;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
+//  trq = lqrController(y, y_setpoint);
 //  Serial.println(trq);
   int pos=0;
   float velocity2=0;
@@ -187,12 +192,12 @@ void loop() {
 //  prevT = currT;  
 
 
-  float v2 = velocity2/100.0;
+  float v2 = velocity2/100.0*60.0;
 //  Serial.print(velocity1);
 //  Serial.print(" ");
 //  Serial.print(v2);
 //  Serial.println();
-  setTorque(dtt, trq, v2);
+  setTorque(curr, trq, v2);
 
 
 }

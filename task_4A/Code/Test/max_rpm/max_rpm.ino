@@ -1,3 +1,7 @@
+// Max rpms with all weights comes out to be around 3200, with battery of around 11.7 volts.
+
+#include <util/atomic.h>
+
 #define ENCA 2 //21-PD0 //19-RX1
 #define ENCB 3 //20-PD1 //18-TX1
 #define brake 48 //PL1
@@ -6,45 +10,36 @@
 #define pi = 3.141;
 
 
-float alpha=0.0, theta=0.0;
-volatile long pos=0.0;
-const int siz=4;
-int y[siz], y_setpoint[siz];
-double prevMillis=0, currentMillis=0, mil_now=0, mil_then=0, prev_rpms=0, velc;
-double M=0.0, angAcc=0.0, trq=0.0, K[siz]={-41.4663,-6.4185,-1.0000,-1.3120}, prev_trq=0, rpms_then=0;
-double dt=0, tor=0,dtt=0,theta_then, alpha_then, vel_Now, prev_rpm=0, max_rpm=0, pwmVal;
-double theta_dot, alpha_dot, mil_now_5=0, mil_then_5=0, rpm=0, new_alpha=0,del_alpha=0, old_alpha=0, rpms=0;
-int temp=0;
+float prev = 0, K[4]={}, y[4]={}, y_setpoint[4]={}, M;
+float thet, thet_dot, alp, alp_dot, prevAlp=0, vGive, prev_u=0;
+long prevT=0;
+int posPrev=0,  sz=4, trq;
+volatile int pos_i=0; 
+volatile float velocity_i=0;
+volatile long prevT_i=0;
 
 
 void readEncoder(){
-  //Serial.print("read encoder");
   int b=digitalRead(ENCB);
+  int increment=0;
   if (b>0){
-    pos++;
+    increment=1;
+//    pos_i++;
   }
   else{
-    pos--;
+    increment=-1;
+//    pos_i--;
   }
+  pos_i=pos_i+increment;
+//  Serial.println(pos_i);
+
+  long currT=micros();
+  float deltaT=((float) (currT-prevT_i))/1.0e6;
+  velocity_i=increment/deltaT;
+  prevT_i=currT;
 }
 
 
-int rounds(){
-  currentMillis=millis();
-  new_alpha=(pos*360*0.0174533)/100;
-  if (currentMillis-prevMillis>=10){
-    dt=currentMillis-prevMillis;
-    del_alpha=new_alpha-old_alpha;
-    rpm=del_alpha*1000*60/(dt*6.28319);
-    old_alpha=new_alpha;
-    prevMillis=currentMillis;
-    max_rpm=max(rpm, prev_rpm);
-//    Serial.print("Max RPM: ");
-//    Serial.print(max_rpm);
-    prev_rpm=rpm;
-  }
-  return rpm;
-}
 
 
 void setup() {
@@ -65,40 +60,24 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  
+  float curr = micros();
+  // radians - 0.10471975512
+  alp = (pos_i*360)/100; // radians
+  float dtt = curr - prev;
+  prev = curr;
+  alp_dot = (alp-prevAlp)/dtt;
+  prevAlp=alp;
 
-//  Serial.print("Hello World");
-//  Serial.print("Hello");
-  Serial.println(pos);
-  alpha=(pos*360*0.0174533)/100;
-
-//  mil_now=millis();
-//  dtt=mil_now-mil_then;
-//  if (dtt>0){
-//    alpha_dot=(alpha-alpha_then)/dtt;
-//  }
-
-
-  // 2727.28 -> with all screws.
-  // 2828 -> without screws.
-  mil_now_5=millis();
-  if (mil_now_5-mil_then_5>=2000){
-    analogWrite(pwm, 255-temp);
-    temp+=5;
-    mil_then_5=mil_now_5;
+  int pos=0;
+  float velocity2=0;
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+    pos = pos_i;
+    velocity2=velocity_i;
   }
-//  Serial.print("Temp: ");
-//  Serial.print(temp);
 
-  rpms=rounds();
-//  Serial.print("\tRounds: ");
-//  Serial.println(rpms);
-
-
-  alpha_then=alpha; 
-  theta_then=theta;
-  mil_then=mil_now;
-//  mil_then_5=mil_now_5;
-  rpms_then=rpms;
-//  alpha_then=alpha;
+  float v2 = velocity2/100.0*60.0;
+  Serial.println(v2);
+  digitalWrite(brake, HIGH);
+  analogWrite(pwm, 0);
 }
