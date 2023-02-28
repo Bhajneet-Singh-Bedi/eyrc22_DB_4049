@@ -1,9 +1,9 @@
 #include <util/atomic.h>
-//#include <MPU6050_light.h>
+#include <MPU6050_light.h>
 //
 //#include <Adafruit_MPU6050.h>
 //#include <Adafruit_Sensor.h>
-#include <Wire.h>
+//#include <Wire.h>
 
 //Adafruit_MPU6050 mpu;
 
@@ -13,8 +13,8 @@ int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 int minVal=265;
 int maxVal=402;
  
-double x;
-double y;
+//double thet;
+//double y;
 double z;
 
 #define ENCA 2 //21-PD0 //19-RX1  //17-RX2
@@ -23,10 +23,10 @@ double z;
 #define cw 11 // 1A
 #define pwm 9 // 
 
-//MPU6050 mpu(Wire);
+MPU6050 mpu(Wire);
 
 // globals
-float prev = 0, K[4]={}, y_setpoint[4]={}, M;
+float prev = 0, K[4]={}, y_setpoint[4]={}, M, y[4]={};
 float thet, thet_dot, alp, alp_dot, prevAlp=0, vGive, prev_u=0;
 long prevT=0;
 int posPrev=0,  sz=4, trq;
@@ -119,6 +119,9 @@ void setTorque(float dtt, int trq, float vNow){
   float e=vGive-vNow;
   float u=kp*e;
 
+//  float u = map(fabs(vNow), 0, 3200, 0, 255);
+//  Serial.println(u);
+
   // Direction.
   int dir=1;
   if (u<0){
@@ -139,25 +142,25 @@ void setTorque(float dtt, int trq, float vNow){
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  Wire.begin();
+  mpu.begin();
+  pinMode(ENCA, INPUT);
+  pinMode(ENCB, INPUT);
+  pinMode(brake, OUTPUT);
+  pinMode(cw, OUTPUT);
+  pinMode(pwm, OUTPUT);
+  digitalWrite(ENCA, HIGH);
+  digitalWrite(brake, LOW); // Low means braking.
+  digitalWrite(cw, HIGH); // gives positive value // Low will give negative
+  analogWrite(pwm, 255); // 255 means stop // 0 means go.
+
+
 //  Wire.begin();
-//  mpu.begin();
-//  pinMode(ENCA, INPUT);
-//  pinMode(ENCB, INPUT);
-//  pinMode(brake, OUTPUT);
-//  pinMode(cw, OUTPUT);
-//  pinMode(pwm, OUTPUT);
-//  digitalWrite(ENCA, HIGH);
-//  digitalWrite(brake, LOW); // Low means braking.
-//  digitalWrite(cw, HIGH); // gives positive value // Low will give negative
-//  analogWrite(pwm, 255); // 255 means stop // 0 means go.
-
-
-    Wire.begin();
-  Wire.beginTransmission(MPU_addr);
-  Wire.write(0x6B);
-  Wire.write(0);
-  Wire.endTransmission(true);
-  Serial.begin(9600);
+//  Wire.beginTransmission(MPU_addr);
+//  Wire.write(0x6B);
+//  Wire.write(0);
+//  Wire.endTransmission(true);
+//  Serial.begin(9600);
 //  if (!mpu.begin()) {
 //    Serial.println("Failed to find MPU6050 chip");
 //    while (1) {
@@ -174,9 +177,9 @@ void setup() {
 //  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
 //
 //  delay(100);
-//  mpu.calcOffsets(true, true); 
-//  M = 0.134*0.097*0.097/2; // Moment of Inertia.
-//  attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
+  mpu.calcOffsets(true, true); 
+  M = 0.134*0.097*0.097/2; // Moment of Inertia.
+  attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 }
 
 void loop() {
@@ -202,84 +205,102 @@ void loop() {
 ////  Serial.print(g.gyro.z);
 //  Serial.println(" rad/s");
 
-  Wire.beginTransmission(MPU_addr);
-Wire.write(0x3B);
-Wire.endTransmission(false);
-Wire.requestFrom(MPU_addr,14,true);
-AcX=Wire.read()<<8|Wire.read();
-AcY=Wire.read()<<8|Wire.read();
-AcZ=Wire.read()<<8|Wire.read();
-int xAng = map(AcX,minVal,maxVal,-90,90);
-int yAng = map(AcY,minVal,maxVal,-90,90);
-int zAng = map(AcZ,minVal,maxVal,-90,90);
- 
-x= RAD_TO_DEG * (atan2(-yAng, -zAng)+PI);
-y= RAD_TO_DEG * (atan2(-xAng, -zAng)+PI);
-z= RAD_TO_DEG * (atan2(-yAng, -xAng)+PI);
- 
-Serial.print("AngleX= ");
-Serial.println(x);
+//  Wire.beginTransmission(MPU_addr);
+//Wire.write(0x3B);
+//Wire.endTransmission(false);
+//Wire.requestFrom(MPU_addr,14,true);
+//AcX=Wire.read()<<8|Wire.read();
+//AcY=Wire.read()<<8|Wire.read();
+//AcZ=Wire.read()<<8|Wire.read();
+//int xAng = map(AcX,minVal,maxVal,-90,90);
+//int yAng = map(AcY,minVal,maxVal,-90,90);
+//int zAng = map(AcZ,minVal,maxVal,-90,90);
 // 
-//Serial.print("AngleY= ");
-//Serial.println(y);
+//x= RAD_TO_DEG * (atan2(-yAng, -zAng)+PI);
+ 
+ 
+//y= RAD_TO_DEG * (atan2(-xAng, -zAng)+PI);
+//z= RAD_TO_DEG * (atan2(-yAng, -xAng)+PI);
 
-//  Serial.print("Temperature: ");
-//  Serial.print(temp.temperature);
-//  Serial.println(" degC");
+//  Serial.println(x);
+  // Now this gives us values from 0 to 360.
+//  x = 360-x;
+//  Serial.println(x);
+//  Serial.println(pos_i);
 
-//  Serial.println("");
-//  delay(500);
+  // If value is from 0 to 90 then take it positive.
+  // If value if from 359 to 270 then take it negative i.e. from -1 to -90.
 
-//  mpu.update();
-////  Serial.println(mpu.getAngleY());
-////  *0.0174533
-//  thet = mpu.getAngleY(); // radians
-//  // Theta_dot.
-//  // radians
-//  thet_dot = mpu.getGyroY(); // radians
-//
-//  float curr = micros();
-//  // radians - 0.10471975512
-//  alp = (pos_i*360)/100; // radians
-//  float dtt = curr - prev;
-//  prev = curr;
-//  alp_dot = (alp-prevAlp)/dtt;
-//  prevAlp=alp;
-//  
-//  
-////  int pwr = 100/3.0*micros()/1.0e6;
-////  int dir = 1;
-////  setMotor(dir, pwr);
-////  Serial.print(thet);
-////  Serial.print("\t");
-////  Serial.print(thet_dot);
-////  Serial.println("\t");
-//  
-//  y[0]=thet; y[1]=thet_dot; y[2]=alp;  y[3]=alp_dot;
-//  y_setpoint[0]=0;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
-//  trq = lqrController(y, y_setpoint);
-////  Serial.println(trq);
-//  int pos=0;
-//  float velocity2=0;
-//  ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-//    pos = pos_i;
-//    velocity2=velocity_i;
+//  if (thet>=0 && thet<=90){
+//    thet = thet;
 //  }
+//  else if (thet<=359.99 && thet>=270){
+//    thet = thet-360;
+//  }
+//  curr_tmm = micros();
+//  del = (curr_tmm-prev_tmm)/1.0e6;
+//  prev_tmm = curr_tmm;
 //
-////   Computing velocity with method 1
-////  long currT = micros();
-////  float deltaT = ((float) (currT-prevT))/1.0e6;
-////  float velocity1 = (pos-posPrev)/deltaT;
-////  posPrev=pos;
-////  prevT = currT;  
-//
-//
-//  float v2 = velocity2/100.0*60.0;
-////  Serial.print(velocity1);
-////  Serial.print(" ");
-////  Serial.print(v2);
-////  Serial.println();
-//  setTorque(dtt, trq, v2);
+//  theta_dot = (prev_x-thet)/del;
+//  thet = prev_thet;
+//  Serial.println(x);
+  
+  
+  
+
+  mpu.update();
+//  Serial.println(mpu.getAngleY());
+//  *0.0174533
+  thet = mpu.getAngleX(); // radians
+  // Theta_dot.
+  // radians
+  thet_dot = mpu.getGyroX(); // radians
+  Serial.print(thet);
+  Serial.print("\t");
+  Serial.println(thet_dot);
+
+  float curr = micros();
+  // radians - 0.10471975512
+  alp = (pos_i*360)/100; // radians
+  float dtt = curr - prev;
+  prev = curr;
+  alp_dot = (alp-prevAlp)/dtt;
+  prevAlp=alp;
+  
+  
+//  int pwr = 100/3.0*micros()/1.0e6;
+//  int dir = 1;
+//  setMotor(dir, pwr);
+//  Serial.print(thet);
+//  Serial.print("\t");
+//  Serial.print(thet_dot);
+//  Serial.println("\t");
+  
+  y[0]=thet; y[1]=thet_dot; y[2]=alp;  y[3]=alp_dot;
+  y_setpoint[0]=0;y_setpoint[1]=0;y_setpoint[2]=0;y_setpoint[3]=0;
+  trq = lqrController(y, y_setpoint);
+//  Serial.println(trq);
+  int pos=0;
+  float velocity2=0;
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+    pos = pos_i;
+    velocity2=velocity_i;
+  }
+
+//   Computing velocity with method 1
+//  long currT = micros();
+//  float deltaT = ((float) (currT-prevT))/1.0e6;
+//  float velocity1 = (pos-posPrev)/deltaT;
+//  posPrev=pos;
+//  prevT = currT;  
+
+
+  float v2 = velocity2/100.0*60.0;
+//  Serial.print(velocity1);
+//  Serial.print(" ");
+//  Serial.print(v2);
+//  Serial.println();
+  setTorque(dtt, trq, v2);
 
 
 }
