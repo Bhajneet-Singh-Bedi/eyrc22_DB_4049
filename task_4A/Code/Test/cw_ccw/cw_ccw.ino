@@ -1,7 +1,7 @@
 
 #define ENCA 2 //21-PD0 //19-RX1
 #define ENCB 3 //20-PD1 //18-TX1
-#define brake 41 //PL1
+#define brake 48 //PL1
 #define cw 11 // 1A
 #define pwm 9 // 2B
 //#define pi = 3.141;
