@@ -1,69 +1,32 @@
-#include "Wire.h"
-#include <MPU6050_light.h>
+#include <Wire.h>
 
-MPU6050 mpu(Wire);
-float x=0.0;
-
-void timer1_init()
-{
-    cli(); //Clears the global interrupts
-    TIMSK1 = 0x01; //timer5 overflow interrupt enable
-    TCCR1B = 0x00; //stop
-    TCNT1H = 0xA2; //Counter higher 8 bit value
-    TCNT1L = 0x3F; //Counter lower 8 bit value
-    TCCR1A = 0x00;
-    TCCR1C = 0x00;
-    TCCR1B = 0x02; //start Timer, prescaler 8
-    sei();   //Enables the global interrupts
-}
-
-ISR (TIMER1_OVF_vect)
-{
-    sei();  
-    TCNT1H = 0xA2; //Counter higher 8 bit value
-    TCNT1L = 0x3F; //Counter lower 8 bit value
-    mpu.update();
-    cli();
-//    Serial.print("X: ");
-//    Serial.println(mpu.getAngleX());
-//    Serial.print("Y: ");
-//    Serial.print(mpu.getAngleY());
-//    Serial.print("Z: ");
-//    Serial.println(mpu.getAngleZ());
-}
+const int MPU_addr = 0x68; // I2C address of MPU6050
+const int sampleRateDiv = 99; // Set sample rate divider to 99 for 60 Hz sampling rate
 
 void setup() {
-  // put your setup code here, to run once:
-  
-  Serial.begin(9600);
-  Wire.begin();
-  byte status=mpu.begin();
-  Serial.print(F("MPU6050 status: "));
-  while(status!=0){ } // stop everything if could not connect to MPU6050
-  Serial.println("MPU begin done!\n");
-  //Serial.println(mpu.getAngleX());
-  
-//  timer1_init(); 
-  Serial.println("Timer initialized\n");
+  Wire.begin(); // Initialize I2C communication
+  Serial.begin(9600); // Initialize serial communication
+  delay(1000); // Wait for MPU6050 to stabilize
+  setSampleRate(sampleRateDiv); // Set sampling rate
 }
 
 void loop() {
-  mpu.update();
-  
-  Serial.print(mpu.getAngleY());
-  Serial.print("\t");
-//  Serial.print(mpu.getAngleY());
-//  Serial.print("\t");
-//  Serial.println(mpu.getAngleZ());
+  // Your code here
+}
 
-  Serial.print(mpu.getGyroY());
-//  Serial.print("\t");
-//  Serial.print(mpu.getGyroY());
-//  Serial.print("\t");
-//  Serial.print(mpu.getGyroZ());
-//  Serial.print("\t");
-
-  Serial.println("");
+void setSampleRate(int div) {
+  Wire.beginTransmission(MPU_addr); // Start communication with MPU6050
+  Wire.write(0x19); // Set sample rate divider register
+  Wire.write(div); // Set sample rate to desired value
+  Wire.endTransmission(); // End transmission
+  delay(10); // Wait for settings to take effect
   
-  // put your main code here, to run repeatedly:
+  Wire.beginTransmission(MPU_addr); // Start communication with MPU6050
+  Wire.write(0x19); // Set pointer to sample rate divider register
+  Wire.endTransmission(); // End transmission
+  Wire.requestFrom(MPU_addr, 1); // Request 1 byte of data from MPU6050
+  byte regVal = Wire.read(); // Read the data from the register
+  Serial.print("Sample rate set to: ");
+  Serial.print(1000 / (1 + regVal));
+  Serial.println(" Hz"); // Print actual sampling rate
 }
