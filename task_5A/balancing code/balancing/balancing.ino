@@ -107,7 +107,7 @@ void setup() {
   pid.begin();          // initialize the PID instance
   
   pid.setpoint(0);    // The "goal" the PID controller tries to "reach"
-  pid.tune(5000, 1, 0);    // Tune the PID, arguments: kP, kI, kD
+  pid.tune(5000, 50, 0);    // Tune the PID, arguments: kP, kI, kD
 //  pid.limit(0, 255);    // Limit the PID output between 0 and 255, /this is important to get rid of integral windup!
 
   
