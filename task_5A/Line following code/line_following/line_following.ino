@@ -9,9 +9,9 @@
 
 Servo myservo;
 
-int poss=0, p_poss=90;
+int poss=0, p_poss=90, threshold;
 
-float value0, value1, value2, value3, value4, y;
+float v0, v1, v2, v3, v4, y;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -25,11 +25,11 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  value0=analogRead(sen0);
-  value1=analogRead(sen1);
-  value2=analogRead(sen2);
-  value3=analogRead(sen3);
-  value4=analogRead(sen4);
+  v0=analogRead(sen0);
+  v1=analogRead(sen1);
+  v2=analogRead(sen2);
+  v3=analogRead(sen3);
+  v4=analogRead(sen4);
 //  Serial.print(analogRead(sen1));
 //  Serial.print("  ");
 //  Serial.print(analogRead(sen2));
@@ -41,7 +41,7 @@ void loop() {
 //  Serial.println(analogRead(sen5));
 
 //  y = (0 * value0 + 1000 * value1 + 2000 * value2 + 3000 * value3 + 4000 * value4) / (value0 + value1 + value2 + value3 + value4);
-  Serial.println(value0); /*Serial.print("   "); Serial.print(value2); Serial.print("   "); Serial.println(value3);*/
+//  Serial.println(value0); /*Serial.print("   "); Serial.print(value2); Serial.print("   "); Serial.println(value3);*/
 //  Serial.println(y);
 
 //  if (value1>=900 && value3<=900){
@@ -82,6 +82,58 @@ void loop() {
 //    delay(5);
 //  }
 //  }
-  myservo.write(50);
+
+  // So, it seems like black value is like between 400-500 and white value is around 850-950.
+  // So, probably threshold would be around 650 or so.
+  // Zero degrees is left side when back wheel is near and front wheel is far from me. Let's write the code.
+  // Try using a delay while giving motor the angle.
+  threshold = 650;
+
+  // Straight line code.
+  if (v0<=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4<=threshold){
+    poss = 90;
+  }
+  else if (v0<=threshold && v1>=threshold && v2>=threshold && v3<= threshold && v4<=threshold){
+    poss = 100;
+  }
+  else if (v0<=threshold && v1<=threshold && v2>=threshold && v3>= threshold && v4<=threshold){
+    poss = 80;
+  }
+  else if (v0>=threshold && v1>=threshold && v2>=threshold && v3<= threshold && v4<=threshold){
+    poss = 105;
+  }
+  else if (v0<=threshold && v1<=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
+    poss = 75;
+  }
+  else if (v0>=threshold && v1>=threshold && v2<=threshold && v3<= threshold && v4<=threshold){
+    poss = 120;
+  }
+  else if (v0<=threshold && v1<=threshold && v2<=threshold && v3>= threshold && v4>=threshold){
+    poss = 60;
+  }
+  // Straight line code.
+
+  
+//  else if (v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
+//    // hahahaha.
+//  }
+//  else if (v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
+//    // hahahaha.
+//  }
+  
+  Serial.println(poss);
+  if (myservo.read()<=poss){
+    for (int i=myservo.read(); i<=poss; i++){
+      myservo.write(poss);
+      delay(15);    
+    }
+  }
+  else if (myservo.read()>=poss){
+    for (int i=myservo.read(); i>=poss; i--){
+      myservo.write(poss);
+      delay(15);
+    }
+  }
+  
   
 }
