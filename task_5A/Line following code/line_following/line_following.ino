@@ -7,8 +7,8 @@
 #define sen3 A14
 #define sen4 A15
 
-Servo myservo;
-
+Servo hServo;
+Servo dServo;
 int poss=0, p_poss=90, threshold;
 
 float v0, v1, v2, v3, v4, y;
@@ -20,7 +20,8 @@ void setup() {
   pinMode(sen2, INPUT);
   pinMode(sen3, INPUT);
   pinMode(sen4, INPUT);
-  myservo.attach(7);
+  hServo.attach(7);
+  dServo.attach(6);
 }
 
 void loop() {
@@ -70,15 +71,15 @@ void loop() {
 //  }
 
 //  Serial.print(digitalRead(sen1)); Serial.print("  "); Serial.print(digitalRead(sen2)); Serial.print("  "); Serial.println(digitalRead(sen3));
-//  if (myservo.read()<=poss){
-//    for (int i=myservo.read(); i<=poss; i++){
-//    myservo.write(poss);  
+//  if (hServo.read()<=poss){
+//    for (int i=hServo.read(); i<=poss; i++){
+//    hServo.write(poss);  
 //    delay(5);
 //    }
 //  }
 //  else {
-//    for (int i=myservo.read(); i>=poss; i--){
-//    myservo.write(poss);  
+//    for (int i=hServo.read(); i>=poss; i--){
+//    hServo.write(poss);  
 //    delay(5);
 //  }
 //  }
@@ -94,10 +95,10 @@ void loop() {
     poss = 90;
   }
   else if (v0<=threshold && v1>=threshold && v2>=threshold && v3<= threshold && v4<=threshold){
-    poss = 100;
+    poss = 105;
   }
   else if (v0<=threshold && v1<=threshold && v2>=threshold && v3>= threshold && v4<=threshold){
-    poss = 80;
+    poss = 75;
   }
   else if (v0>=threshold && v1>=threshold && v2>=threshold && v3<= threshold && v4<=threshold){
     poss = 105;
@@ -120,20 +121,45 @@ void loop() {
 //  else if (v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
 //    // hahahaha.
 //  }
+
+//  drop_left();
   
-  Serial.println(poss);
-  if (myservo.read()<=poss){
-    for (int i=myservo.read(); i<=poss; i++){
-      myservo.write(poss);
+//  Serial.println(poss);
+  // This is for manuvering.
+//  manuvering(poss);
+//  delay(1000);
+  // This is for delivery servo motor.
+  
+  delServo(0);
+  
+}
+
+void manuvering(int poss){
+  if (hServo.read()<=poss){
+    for (int i=hServo.read(); i<=poss; i++){
+      hServo.write(poss);
       delay(15);    
     }
   }
-  else if (myservo.read()>=poss){
-    for (int i=myservo.read(); i>=poss; i--){
-      myservo.write(poss);
+  else if (hServo.read()>=poss){
+    for (int i=hServo.read(); i>=poss; i--){
+      hServo.write(poss);
       delay(15);
     }
   }
-  
-  
+}
+
+void delServo(int pos){
+   if (dServo.read()<=pos){
+    for (int i=dServo.read(); i<=pos; i++){
+      dServo.write(pos);
+      delay(15);    
+    }
+  }
+  else if (dServo.read()>=pos){
+    for (int i=dServo.read(); i>=pos; i--){
+      dServo.write(pos);
+      delay(15);
+    }
+  }
 }
