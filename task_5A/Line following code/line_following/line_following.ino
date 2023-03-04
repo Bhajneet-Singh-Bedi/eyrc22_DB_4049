@@ -9,9 +9,9 @@
 
 Servo hServo;
 Servo dServo;
-int poss=0, p_poss=90, threshold;
-
+int poss=0, threshold;
 float v0, v1, v2, v3, v4, y;
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);

@@ -9,7 +9,7 @@
 
 Servo hServo;
 Servo dServo;
-int poss=0, threshold;
+int poss=0, threshold, counter=0;
 float v0, v1, v2, v3, v4, y;
 
 void setup() {
@@ -44,7 +44,9 @@ void loop() {
   
   // Start  code will be here detecting telling the bike to detect the starting line and go on.
   start_line();
-  
+  Serial.print(v0);Serial.print(" ");Serial.print(v1);Serial.print(" ");Serial.print(v2);Serial.print(" ");Serial.print(v3);Serial.print(" ");Serial.print(v4);
+
+  Serial.print("  ");Serial.println(poss);
 }
 
 void straight_line(){
@@ -70,20 +72,30 @@ void straight_line(){
   else if (v0<=threshold && v1<=threshold && v2<=threshold && v3>= threshold && v4>=threshold){
     poss = 60;
   }
+  else if(v0<=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
+    poss = 50;
+  }
+  else if(v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4<=threshold){
+    poss = 130;
+  }
+  else {
+    poss=90;
+  }
   // Straight line code.
 
   // This is start bike code.
-  else if (v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
-    //start the motor.
-    //provide some delay.
-  }
+//  else if (v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
+//    //start the motor.
+//    //provide some delay.
+//  }
 
   // Delivery node code.
-  else if (v0<=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
+//  else if (v0<=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
     //It means delivery node has been achieved.
     //Increase the counter.
     //This will specify that the bike has reached the node.
-  }
+//    counter=1;
+//  }
 
   // 
 
@@ -100,14 +112,15 @@ void straight_line(){
       delay(15);
     }
   }
+//  Serial.println(poss);
 }
 
-//void start_line(){
-//  if (v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
-//    // motor has started.
-//
-//    // give power to the motor and also the power will be given in the starting too, this is just for precautions. 
-//    // Provide some delay to.
-//    
-//  }
-//}
+void start_line(){
+  if (v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
+    // motor has started.
+
+    // give power to the motor and also the power will be given in the starting too, this is just for precautions. 
+    // Provide some delay to.
+    
+  }
+}
