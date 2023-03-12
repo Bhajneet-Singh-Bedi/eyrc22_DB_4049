@@ -70,7 +70,7 @@ void loop() {
 //    poss=90;
 //  }
 
-//  Serial.print(digitalRead(sen1)); Serial.print("  "); Serial.print(digitalRead(sen2)); Serial.print("  "); Serial.println(digitalRead(sen3));
+//  Serial.print(digitalRead(sen1));Serial.print("  ");Serial.print(digitalRead(sen2));Serial.print("  ");Serial.print(digitalRead(sen3));Serial.printn(
 //  if (hServo.read()<=poss){
 //    for (int i=hServo.read(); i<=poss; i++){
 //    hServo.write(poss);  
@@ -84,6 +84,7 @@ void loop() {
 //  }
 //  }
 
+  
   // So, it seems like black value is like between 400-500 and white value is around 850-950.
   // So, probably threshold would be around 650 or so.
   // Zero degrees is left side when back wheel is near and front wheel is far from me. Let's write the code.
@@ -112,8 +113,15 @@ void loop() {
   else if (v0<=threshold && v1<=threshold && v2<=threshold && v3>= threshold && v4>=threshold){
     poss = 60;
   }
+  // For 5A start junction
+  else if (v0<=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
+    poss = 70;
+  }
+  else{
+    poss=90;
+  }
   // Straight line code.
-
+  Serial.print(v0);Serial.print(" ");Serial.print(v1);Serial.print(" ");Serial.print(v2);Serial.print(" ");Serial.print(v3);Serial.print(" ");Serial.print(v4);Serial.println(poss);
   
 //  else if (v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
 //    // hahahaha.
@@ -121,16 +129,16 @@ void loop() {
 //  else if (v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
 //    // hahahaha.
 //  }
-
+  
 //  drop_left();
   
 //  Serial.println(poss);
   // This is for manuvering.
-//  manuvering(poss);
+  manuvering(poss);
 //  delay(1000);
   // This is for delivery servo motor.
   
-  delServo(0);
+//  delServo(0);
   
 }
 
@@ -149,6 +157,7 @@ void manuvering(int poss){
   }
 }
 
+/*
 void delServo(int pos){
    if (dServo.read()<=pos){
     for (int i=dServo.read(); i<=pos; i++){
@@ -163,3 +172,4 @@ void delServo(int pos){
     }
   }
 }
+*/

@@ -3,6 +3,19 @@
 #include <MPU6050.h>
 #include <PIDController.h>
 
+// 9, 11, 13, 14, 15
+#include <Servo.h>
+
+#define sen0 A9
+#define sen1 A11
+#define sen2 A13
+#define sen3 A14
+#define sen4 A15
+
+Servo hServo;
+Servo dServo;
+int poss=0, threshold;
+float v0, v1, v2, v3, v4, y;
 PIDController pid;
 MPU6050 mpu;
 
@@ -107,7 +120,7 @@ void setup() {
   pid.begin();          // initialize the PID instance
   
   pid.setpoint(0);    // The "goal" the PID controller tries to "reach"
-  pid.tune(5000, 50, 0);    // Tune the PID, arguments: kP, kI, kD
+  pid.tune(1000, 20, 1000);    // Tune the PID, arguments: kP, kI, kD
 //  pid.limit(0, 255);    // Limit the PID output between 0 and 255, /this is important to get rid of integral windup!
 
   
@@ -120,6 +133,14 @@ void setup() {
   digitalWrite(brake, LOW); // Low means braking.
   digitalWrite(cw, HIGH); // gives positive value // Low will give negative
   analogWrite(pwm, 255); // 255 means stop // 0 means go.
+
+  pinMode(sen0, INPUT);
+  pinMode(sen1, INPUT);
+  pinMode(sen2, INPUT);
+  pinMode(sen3, INPUT);
+  pinMode(sen4, INPUT);
+  hServo.attach(7);
+  dServo.attach(6);
 }
 
 
@@ -221,7 +242,13 @@ void loop() {
 //      printValues();
 //      break;
 //  }
-  
+  v0=analogRead(sen0);
+  v1=analogRead(sen1);
+  v2=analogRead(sen2);
+  v3=analogRead(sen3);
+  v4=analogRead(sen4);
+
+  straight_line();
 //  pid.tune(p, i, d);    // Tune the PID, arguments: kP, kI, kD
   Serial.print("\troll");
   Serial.print(roll);  
@@ -229,6 +256,53 @@ void loop() {
 //  Serial.println(output);
 
   setMotor(output);
-  
+}
 
+void straight_line(){
+  // Straight line code.
+  if (v0<=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4<=threshold){
+    poss = 90;
+  }
+  else if (v0<=threshold && v1>=threshold && v2>=threshold && v3<= threshold && v4<=threshold){
+    poss = 105;
+  }
+  else if (v0<=threshold && v1<=threshold && v2>=threshold && v3>= threshold && v4<=threshold){
+    poss = 75;
+  }
+  else if (v0>=threshold && v1>=threshold && v2>=threshold && v3<= threshold && v4<=threshold){
+    poss = 105;
+  }
+  else if (v0<=threshold && v1<=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
+    poss = 75;
+  }
+  else if (v0>=threshold && v1>=threshold && v2<=threshold && v3<= threshold && v4<=threshold){
+    poss = 120;
+  }
+  else if (v0<=threshold && v1<=threshold && v2<=threshold && v3>= threshold && v4>=threshold){
+    poss = 60;
+  }
+  else if(v0<=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4>=threshold){
+    poss = 50;
+  }
+  else if(v0>=threshold && v1>=threshold && v2>=threshold && v3>= threshold && v4<=threshold){
+    poss = 130;
+  }
+  else {
+    poss=90;
+  }
+  // Straight line code.
+
+  // Giving it to servo.
+  if (hServo.read()<=poss){
+    for (int i=hServo.read(); i<=poss; i++){
+      hServo.write(poss);
+      delay(15);    
+    }
+  }
+  else if (hServo.read()>=poss){
+    for (int i=hServo.read(); i>=poss; i--){
+      hServo.write(poss);
+      delay(15);
+    }
+  }
 }
